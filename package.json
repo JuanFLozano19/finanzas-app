@@ -1,0 +1,10 @@
+{
+  "name": "finanzas-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PWA personal para administrar ingresos, deudas y metas de ahorro (Supabase).",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

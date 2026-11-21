@@ -1,0 +1,54 @@
+import { h } from '../dom.js';
+
+export function renderAuth(root, authService) {
+  let modo = 'login';
+  const error = h('p', { class: 'form-error', hidden: true });
+  const info = h('p', { class: 'form-info', hidden: true });
+  const titulo = h('h2', {}, 'Inicia sesión');
+  const btn = h('button', { class: 'btn primary block', type: 'submit' }, 'Entrar');
+  const cambio = h('button', { class: 'link', type: 'button' }, '¿No tienes cuenta? Regístrate');
+  const pass = h('input', { name: 'password', type: 'password', required: true, minlength: '6', autocomplete: 'current-password' });
+
+  const pintar = () => {
+    const login = modo === 'login';
+    titulo.textContent = login ? 'Inicia sesión' : 'Crea tu cuenta';
+    btn.textContent = login ? 'Entrar' : 'Crear cuenta';
+    cambio.textContent = login ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión';
+    pass.autocomplete = login ? 'current-password' : 'new-password';
+    error.hidden = true;
+  };
+  cambio.addEventListener('click', () => { modo = modo === 'login' ? 'registro' : 'login'; pintar(); });
+
+  const form = h('form', { class: 'auth-card' },
+    h('div', { class: 'brand-big' }, h('img', { src: 'icons/icon.svg', alt: '' }), h('span', {}, 'Mis Finanzas')),
+    h('p', { class: 'muted' }, 'Ingresos, deudas y metas en un solo lugar, en tu celular y en tu PC.'),
+    titulo,
+    h('label', { class: 'field' }, h('span', { class: 'label' }, 'Correo'),
+      h('input', { name: 'email', type: 'email', required: true, autocomplete: 'email' })),
+    h('label', { class: 'field' }, h('span', { class: 'label' }, 'Contraseña'), pass,
+      h('small', { class: 'hint' }, 'Mínimo 6 caracteres.')),
+    error, info, btn, cambio,
+  );
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const email = String(fd.get('email')).trim();
+    const password = String(fd.get('password'));
+    btn.disabled = true; error.hidden = true; info.hidden = true;
+    try {
+      if (modo === 'login') await authService.login(email, password);
+      else {
+        const activa = await authService.registrar(email, password);
+        if (!activa) {
+          info.textContent = 'Te enviamos un correo para confirmar tu cuenta. Ábrelo y luego inicia sesión aquí.';
+          info.hidden = false; modo = 'login'; pintar();
+        }
+      }
+    } catch (err) {
+      error.textContent = err.message; error.hidden = false;
+    } finally { btn.disabled = false; }
+  });
+
+  root.replaceChildren(h('main', { class: 'auth-wrap' }, form));
+}
