@@ -1,6 +1,7 @@
 // Servicios extra de Universidad: horario del semestre, apuntes con archivos,
 // trabajos en grupo y sesiones de estudio (Pomodoro).
 import { today, addDays, startOfWeek } from '../core/format.js';
+import { notaFinal, resumenCarrera, estadoPorNota, planearRepaso, siguienteRepaso, tarjetasPendientes } from '../domain/carrera.js';
 import { primerDia, minutosPorMateria, eventosDelDia } from '../domain/vida.js';
 
 export class HorarioService {
@@ -106,4 +107,66 @@ export class EstudioService {
   }
   registrar(materia_id, minutos) { return this.r.sesiones.create({ materia_id: materia_id || null, minutos, fecha: today() }); }
   eliminar(id) { return this.r.sesiones.remove(id); }
+}
+
+// ---------- Carrera y malla curricular ----------
+
+export class CarreraService {
+  constructor(repos) { this.r = repos; }
+  async datos() {
+    const [materias, evals, aj] = await Promise.all([
+      this.r.materias.list({ orderBy: 'nombre', ascending: true }),
+      this.r.evaluaciones.list({ orderBy: 'fecha', ascending: true }),
+      this.r.ajustes.findOne([], 'updated_at'),
+    ]);
+    const items = materias.map((m) => ({ ...m, final: notaFinal(m, evals.filter((e) => e.materia_id === m.id)) }));
+    const creditosCarrera = aj?.creditos_carrera || null;
+    return { items, creditosCarrera, resumen: resumenCarrera(items, creditosCarrera) };
+  }
+  /** Guarda la materia manteniendo `activa` sincronizada con el estado. */
+  guardarMateria(id, d) {
+    const estado = d.estado || (d.nota_final != null ? estadoPorNota(d.nota_final) : 'cursando');
+    const datos = { ...d, estado, activa: estado === 'cursando' };
+    return id ? this.r.materias.update(id, datos) : this.r.materias.create(datos);
+  }
+  cambiarEstado(m, estado) { return this.r.materias.update(m.id, { estado, activa: estado === 'cursando' }); }
+  eliminarMateria(id) { return this.r.materias.remove(id); }
+  guardarCreditos(creditos_carrera) { return this.r.ajustes.upsert({ creditos_carrera }, 'user_id'); }
+}
+
+// ---------- Plan de repaso para evaluaciones ----------
+export class PlanRepasoService {
+  constructor(repos) { this.r = repos; }
+  async proximas() {
+    const hoy = today();
+    const [evals, materias] = await Promise.all([
+      this.r.evaluaciones.list({ orderBy: 'fecha', ascending: true, filters: [['fecha', 'gt', hoy]] }),
+      this.r.materias.list({ orderBy: 'nombre', ascending: true }),
+    ]);
+    return evals.filter((e) => e.nota == null).map((e) => ({ ...e, materia: materias.find((m) => m.id === e.materia_id) }));
+  }
+  async proponer({ examen, sesiones, minutos }) {
+    const eventos = await this.r.eventos.list({ orderBy: 'fecha', ascending: true, filters: [['fecha', 'lte', examen]] });
+    return planearRepaso(eventos, { desde: addDays(today(), 1), examen, sesiones, minutos });
+  }
+  async agendar(plan, { titulo, materia_id }) {
+    for (const p of plan) {
+      await this.r.eventos.create({ titulo, tipo: 'estudio', fecha: p.fecha, hora_inicio: p.inicio, hora_fin: p.fin, semanal: false, materia_id: materia_id || null, recordatorio_min: 30 });
+    }
+  }
+}
+
+// ---------- Tarjetas de repaso ----------
+export class FlashcardsService {
+  constructor(repos) { this.r = repos; }
+  async datos(hoy = today()) {
+    const [tarjetas, materias] = await Promise.all([
+      this.r.flashcards.list({ orderBy: 'created_at', ascending: true }),
+      this.r.materias.list({ orderBy: 'nombre', ascending: true }),
+    ]);
+    return { tarjetas, materias, pendientes: tarjetasPendientes(tarjetas, hoy) };
+  }
+  guardar(id, d) { return id ? this.r.flashcards.update(id, d) : this.r.flashcards.create({ ...d, caja: 1, proxima: today() }); }
+  eliminar(id) { return this.r.flashcards.remove(id); }
+  responder(t, acierto) { return this.r.flashcards.update(t.id, siguienteRepaso(t, acierto, today())); }
 }

@@ -700,3 +700,33 @@ h3 { font-weight: 650; letter-spacing: -.01em; }
 .link-box { display: flex; gap: 8px; align-items: center; background: var(--surface-2); border-radius: 12px; padding: 8px 8px 8px 12px; }
 .link-box code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .78rem; color: var(--muted); }
 a.btn { text-decoration: none; color: inherit; display: inline-flex; align-items: center; justify-content: center; }
+
+/* ===== Carrera, malla y tarjetas ===== */
+.link.light { color: #fff; text-decoration: underline; padding: 0; text-align: left; }
+.malla-legend { flex-wrap: wrap; }
+.st-dot { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+.st-dot.st-aprobada, .malla-item.st-aprobada { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+.st-dot.st-cursando { background: var(--surface); box-shadow: inset 0 0 0 2px var(--aguja); }
+.malla-item.st-cursando { background: var(--surface); border-color: var(--aguja); box-shadow: inset 0 0 0 1px var(--aguja); }
+.st-dot.st-pendiente { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); }
+.malla-item.st-pendiente { background: var(--surface-2); color: var(--muted); border-style: dashed; }
+.st-dot.st-perdida { background: var(--surface); box-shadow: inset 0 0 0 2px var(--neg); }
+.malla-item.st-perdida { background: var(--surface); border-color: var(--neg); color: var(--neg); }
+.malla { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 10px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; }
+.malla-col { display: flex; flex-direction: column; gap: 8px; scroll-snap-align: start; }
+.malla-col h4 { font-size: .85rem; color: var(--muted); margin: 0 2px; }
+.malla-item { text-align: left; border: 1px solid var(--border); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; font: inherit; min-height: 64px; }
+.malla-item strong { font-size: .85rem; line-height: 1.25; }
+.malla-item small { font-size: .74rem; opacity: .85; }
+.malla-add { border: 1.5px dashed var(--border); background: none; border-radius: 12px; padding: 8px; color: var(--muted); cursor: pointer; font: inherit; font-weight: 700; }
+.malla-add.tall { min-height: 120px; }
+.state-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.state-opt { border: 1.5px solid var(--border); background: var(--surface); border-radius: 14px; padding: 14px 10px; font: inherit; font-weight: 700; cursor: pointer; }
+.state-opt.on { outline: 3px solid color-mix(in srgb, var(--brand) 40%, transparent); }
+.state-opt.st-aprobada { color: var(--brand); } .state-opt.st-cursando { color: var(--aguja); } .state-opt.st-perdida { color: var(--neg); }
+.flashcard { --c: var(--brand); width: 100%; min-height: 280px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 14px; text-align: center; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); border-top: 6px solid var(--c); border-radius: 22px; padding: 28px 22px; font: inherit; color: inherit; }
+.flashcard small { color: var(--muted); font-weight: 700; }
+.fc-front { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; margin: 0; white-space: pre-wrap; }
+.fc-back { margin: 0; padding-top: 14px; border-top: 1px dashed var(--border); width: 100%; white-space: pre-wrap; font-size: 1.05rem; }
+.fc-box { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-weight: 800; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); flex-shrink: 0; }

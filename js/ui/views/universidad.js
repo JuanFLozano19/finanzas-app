@@ -2,23 +2,25 @@ import { h, fill, emptyState, formulario, toast, progressBar, dialogo } from '..
 import { fmtDate } from '../../core/format.js';
 import { formTarea, tareaItem } from '../components.js';
 import { NOTA_APROBATORIA, simularMateria } from '../../domain/vida.js';
+import { abrirPlanRepaso } from './carrera.js';
 
-const COLORES = [['#0b7a5a', 'Verde'], ['#2563eb', 'Azul'], ['#7c3aed', 'Morado'], ['#db2777', 'Rosa'], ['#ea580c', 'Naranja'], ['#ca8a04', 'Mostaza'], ['#0891b2', 'Cian'], ['#475569', 'Gris']];
+const COLORES = [['#2f55d4', 'Cobalto'], ['#0f8f78', 'Verde'], ['#7c3aed', 'Morado'], ['#db2777', 'Rosa'], ['#ea580c', 'Naranja'], ['#ca8a04', 'Mostaza'], ['#0891b2', 'Cian'], ['#475569', 'Gris']];
 const nota = (x) => (x == null ? '—' : Number(x).toFixed(2));
 const claseNota = (x) => (x == null ? '' : x >= NOTA_APROBATORIA ? 'pos' : 'neg');
 
 function formMateria(vida, m, recargar) {
   formulario({
     titulo: m ? 'Editar materia' : 'Nueva materia',
-    valores: m || { color: '#0b7a5a', activa: true },
+    valores: m || { color: '#2f55d4', estado: 'cursando' },
     campos: [
       { name: 'nombre', label: 'Materia', required: true, placeholder: 'Ej: Bases de Datos' },
       { name: 'profesor', label: 'Docente (opcional)' },
       { name: 'creditos', label: 'Créditos', type: 'number', min: '0', step: '1' },
+      { name: 'semestre', label: 'Semestre de la carrera', type: 'number', min: '1', step: '1' },
       { name: 'color', label: 'Color', type: 'select', options: COLORES },
-      { name: 'activa', label: 'La estoy viendo este semestre', type: 'checkbox' },
+      { name: 'estado', label: 'Estado', type: 'select', options: [['cursando', 'La estoy viendo'], ['aprobada', 'Aprobada'], ['perdida', 'Perdida'], ['pendiente', 'Pendiente']] },
     ],
-    onSubmit: async (d) => { await vida.universidad.guardarMateria(m?.id, d); toast('Materia guardada 📚'); recargar(); },
+    onSubmit: async (d) => { await vida.universidad.guardarMateria(m?.id, { ...d, activa: d.estado === 'cursando' }); toast('Materia guardada 📚'); recargar(); },
     onEliminar: m ? async () => { await vida.universidad.eliminarMateria(m.id); toast('Materia eliminada'); recargar(); } : null,
   });
 }
@@ -80,7 +82,7 @@ function mensaje(e) {
   return `Necesitas ${nota(e.notaNecesaria)} en promedio en el ${e.pctRestante}% que falta para pasar con 3.0.`;
 }
 
-function tarjeta(vida, m, materias, recargar) {
+function tarjeta(vida, m, materias, recargar, plan) {
   const e = m.estado;
   return h('article', { class: `card subject ${m.activa ? '' : 'done'}`, style: `--c:${m.color}` },
     h('div', { class: 'row-between' },
@@ -101,6 +103,7 @@ function tarjeta(vida, m, materias, recargar) {
     h('div', { class: 'card-actions' },
       h('button', { class: 'btn primary', onclick: () => formEvaluacion(vida, m, null, recargar) }, '+ Evaluación'),
       m.evaluaciones.some((ev) => ev.nota == null) ? h('button', { class: 'btn ghost', onclick: () => simulador(m) }, '🔮 Simular') : null,
+      m.evaluaciones.some((ev) => ev.nota == null && ev.fecha && ev.fecha > new Date().toISOString().slice(0, 10)) ? h('button', { class: 'btn ghost', onclick: () => abrirPlanRepaso(plan, recargar, m.evaluaciones.find((ev) => ev.nota == null && ev.fecha)) }, '🧠 Planear repaso') : null,
       h('button', { class: 'btn ghost', onclick: () => formTarea(vida, null, materias, recargar, { materia_id: m.id }) }, '+ Tarea'),
       h('button', { class: 'btn ghost', onclick: () => formMateria(vida, m, recargar) }, 'Editar')),
   );
@@ -118,15 +121,17 @@ export async function renderUniversidad(cont, ctx) {
       h('span', { class: 'hero-label' }, 'Promedio del semestre'),
       h('strong', { class: 'hero-amount' }, promedio != null ? promedio.toFixed(2) : '—'),
       h('small', {}, activas.length ? `${activas.length} materia${activas.length === 1 ? '' : 's'} en curso · ponderado por créditos` : 'Agrega tus materias del semestre')),
-    proximas.length ? h('section', { class: 'card' }, h('h3', {}, 'Próximas evaluaciones'),
+    proximas.length ? h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', {}, 'Próximas evaluaciones'),
+      h('button', { class: 'link', onclick: () => abrirPlanRepaso(ctx.plan, recargar) }, '🧠 Planear repaso')),
       h('ul', { class: 'list compact' }, proximas.slice(0, 5).map((e) => h('li', { class: 'list-item static' },
         h('i', { class: 'swatch', style: `--c:${e.materia?.color}` }),
         h('span', { class: 'grow' }, h('strong', {}, e.nombre), h('small', { class: 'muted' }, `${e.materia?.nombre} · ${Number(e.porcentaje)}%`)),
         h('span', { class: 'pill' }, fmtDate(e.fecha)))))) : null,
     h('div', { class: 'action-row' }, h('button', { class: 'btn primary', onclick: () => formMateria(vida, null, recargar) }, '+ Nueva materia')),
     items.length ? null : emptyState('🎓', 'Sin materias', 'Agrega tus materias con sus porcentajes y te digo cuánto necesitas para pasar.'),
-    activas.map((m) => tarjeta(vida, m, items, recargar)),
-    anteriores.length ? h('h4', { class: 'section-title' }, 'Semestres anteriores') : null,
-    anteriores.map((m) => tarjeta(vida, m, items, recargar)),
+    activas.map((m) => tarjeta(vida, m, items, recargar, ctx.plan)),
+    anteriores.length ? h('button', { class: 'card banner', onclick: () => ctx.irA('carrera') },
+      h('span', {}, '📈'), h('span', { class: 'grow' }, h('strong', {}, `${anteriores.length} materia${anteriores.length === 1 ? '' : 's'} de otros semestres`),
+        h('small', { class: 'muted' }, 'Están en Mi carrera y en la Malla')), h('span', {}, '›')) : null,
   );
 }

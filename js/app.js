@@ -7,7 +7,9 @@ import { AuthService } from './services/AuthService.js';
 import { FinanzasService } from './services/FinanzasService.js';
 import { crearServiciosVida } from './services/VidaServices.js';
 import { PlataService } from './services/PlataService.js';
-import { HorarioService, ApuntesService, GruposService, EstudioService } from './services/UniversidadExtra.js';
+import { HorarioService, ApuntesService, GruposService, EstudioService, CarreraService, PlanRepasoService, FlashcardsService } from './services/UniversidadExtra.js';
+import { renderCarrera, renderMalla } from './ui/views/carrera.js';
+import { renderRepaso } from './ui/views/repaso.js';
 import { BienestarService, AsistenteService } from './services/BienestarService.js';
 import { abrirAsistente } from './ui/asistente.js';
 import { NotificacionesService, PasskeyService } from './services/DispositivoService.js';
@@ -44,7 +46,10 @@ const auth = new AuthService(supabase);
 const service = new FinanzasService(repos);
 const vida = crearServiciosVida(repos);
 const plata = new PlataService(repos);
-const uni = { horario: new HorarioService(repos), apuntes: new ApuntesService(repos, supabase), grupos: new GruposService(repos), estudio: new EstudioService(repos) };
+const uni = {
+  horario: new HorarioService(repos), apuntes: new ApuntesService(repos, supabase), grupos: new GruposService(repos), estudio: new EstudioService(repos),
+  carrera: new CarreraService(repos), plan: new PlanRepasoService(repos), flashcards: new FlashcardsService(repos),
+};
 iniciarTemporizador(uni.estudio);
 const bienestar = new BienestarService(repos);
 const asistente = new AsistenteService({ service, vida, plata, bienestar, repos });
@@ -65,6 +70,9 @@ const RUTAS = {
   notas: { titulo: 'Diario y notas', icono: '📔', render: renderNotas, tab: 'mas', grupo: 'Mi día', enMas: true, desc: 'Ideas y cómo te fue' },
   universidad: { titulo: 'Universidad', icono: '🎓', render: renderUniversidad, tab: 'mas', grupo: 'Universidad', enMas: true, desc: 'Materias, horario, apuntes y estudio', sub: 'universidad', menu: 'Materias' },
   horario: { titulo: 'Horario', icono: '🕘', render: renderHorario, tab: 'mas', grupo: 'Universidad', sub: 'universidad' },
+  carrera: { titulo: 'Mi carrera', icono: '📈', render: renderCarrera, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Carrera' },
+  malla: { titulo: 'Malla curricular', icono: '🗺️', render: renderMalla, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Malla' },
+  repaso: { titulo: 'Tarjetas de repaso', icono: '🃏', render: renderRepaso, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Tarjetas' },
   apuntes: { titulo: 'Apuntes', icono: '📎', render: renderApuntes, tab: 'mas', grupo: 'Universidad', sub: 'universidad' },
   grupos: { titulo: 'Trabajos en grupo', icono: '👥', render: renderGrupos, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Grupos' },
   estudio: { titulo: 'Estudio', icono: '⏱', render: renderEstudio, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Pomodoro' },
@@ -90,7 +98,7 @@ RUTAS.ajustes = { titulo: 'Ajustes', icono: '⚙️', render: renderAjustes, tab
 RUTAS.mas = { titulo: 'Más', icono: '☰', render: crearVistaMas(RUTAS), tab: 'mas', oculta: true };
 
 const TABS = [['hoy', '🏠', 'Hoy'], ['agenda', '🗓', 'Agenda'], ['tareas', '✅', 'Tareas'], ['finanzas', '💰', 'Plata'], ['mas', '☰', 'Más']];
-const SUBTABS = { universidad: ['universidad', 'horario', 'apuntes', 'grupos', 'estudio'], finanzas: ['finanzas', 'movimientos', 'cuentas', 'presupuestos', 'fijos', 'deudas', 'prestamos', 'metas', 'deseos', 'estadisticas'] };
+const SUBTABS = { universidad: ['universidad', 'horario', 'carrera', 'malla', 'repaso', 'apuntes', 'grupos', 'estudio'], finanzas: ['finanzas', 'movimientos', 'cuentas', 'presupuestos', 'fijos', 'deudas', 'prestamos', 'metas', 'deseos', 'estadisticas'] };
 
 const root = document.getElementById('app');
 let sesion = null;

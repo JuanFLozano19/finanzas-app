@@ -3,8 +3,8 @@ import { h, checkCircle, formulario, toast } from './dom.js';
 import { fmtDate, fmtTime, today } from '../core/format.js';
 
 export const PRIORIDADES = [[1, 'Alta'], [2, 'Media'], [3, 'Baja']];
-export const TIPOS_EVENTO = [['clase', '📚 Clase'], ['trabajo', '💼 Trabajo'], ['cita', '📍 Cita'], ['entrega', '📝 Entrega'], ['otro', '🗓 Otro']];
-export const ICONO_EVENTO = { clase: '📚', trabajo: '💼', cita: '📍', entrega: '📝', otro: '🗓' };
+export const TIPOS_EVENTO = [['clase', '📚 Clase'], ['trabajo', '💼 Trabajo'], ['cita', '📍 Cita'], ['entrega', '📝 Entrega'], ['estudio', '🧠 Repaso'], ['otro', '🗓 Otro']];
+export const ICONO_EVENTO = { clase: '📚', trabajo: '💼', cita: '📍', entrega: '📝', estudio: '🧠', otro: '🗓' };
 
 const opcionesMateria = (materias) => [['', '— Ninguna —'], ...materias.filter((m) => m.activa !== false).map((m) => [m.id, m.nombre])];
 

@@ -105,6 +105,7 @@ const TABLAS = {
   prestamos: 'prestamos', abonos: 'abonos_prestamo', apuntes: 'apuntes', proyectos: 'proyectos_grupo',
   sesiones: 'sesiones_estudio', rutinaItems: 'rutina_items', rutinaChecks: 'rutina_checks', metasVida: 'metas_vida',
   pasos: 'pasos_meta', lecturas: 'lecturas', contactos: 'contactos', revisiones: 'revisiones', push: 'push_suscripciones',
+  flashcards: 'flashcards', compras: 'lista_compras',
 };
 
 export function crearRepositorios(client) {
