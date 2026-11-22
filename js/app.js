@@ -1,6 +1,8 @@
 // Punto de entrada: arma las dependencias (composition root) y maneja la navegación.
 import { supabase } from './core/supabase.js';
-import { crearRepositorios } from './data/repositories.js';
+import { aplicarTema, temaGuardado } from './core/tema.js';
+import { crearRepositorios, sincronizar } from './data/repositories.js';
+import { outbox } from './data/outbox.js';
 import { AuthService } from './services/AuthService.js';
 import { FinanzasService } from './services/FinanzasService.js';
 import { crearServiciosVida } from './services/VidaServices.js';
@@ -19,6 +21,9 @@ import { renderMovimientos } from './ui/views/movimientos.js';
 import { renderDeudas } from './ui/views/deudas.js';
 import { renderMetas } from './ui/views/metas.js';
 import { crearVistaMas } from './ui/views/mas.js';
+import { renderAjustes } from './ui/views/ajustes.js';
+
+aplicarTema(temaGuardado());
 
 const repos = crearRepositorios(supabase);
 const auth = new AuthService(supabase);
@@ -41,7 +46,8 @@ const RUTAS = {
   deudas: { titulo: 'Deudas', icono: '💳', render: renderDeudas, tab: 'finanzas', grupo: 'Finanzas', sub: 'finanzas' },
   metas: { titulo: 'Metas', icono: '🎯', render: renderMetas, tab: 'finanzas', grupo: 'Finanzas', sub: 'finanzas' },
 };
-RUTAS.mas = { titulo: 'Más', icono: '☰', render: crearVistaMas(RUTAS, auth), tab: 'mas', oculta: true };
+RUTAS.ajustes = { titulo: 'Ajustes', icono: '⚙️', render: renderAjustes, tab: 'mas', grupo: 'Rumbo', enMas: true, desc: 'Tema, respaldo y cuenta' };
+RUTAS.mas = { titulo: 'Más', icono: '☰', render: crearVistaMas(RUTAS), tab: 'mas', oculta: true };
 
 const TABS = [['hoy', '🏠', 'Hoy'], ['agenda', '🗓', 'Agenda'], ['tareas', '✅', 'Tareas'], ['finanzas', '💰', 'Finanzas'], ['mas', '☰', 'Más']];
 const SUBTABS = { finanzas: ['finanzas', 'movimientos', 'deudas', 'metas'] };
@@ -68,16 +74,17 @@ function construirShell() {
   const subnav = h('div', { class: 'subnav' });
   const contenido = h('div', { class: 'content', id: 'contenido' });
   const correo = h('small', { class: 'muted user-mail' });
+  const estadoRed = h('span', { class: 'net-badge', hidden: true });
 
   const layout = h('div', { class: 'layout' },
     h('aside', { class: 'sidebar' },
-      h('div', { class: 'brand' }, h('img', { src: 'icons/icon.svg', alt: '' }), h('span', {}, 'Mi Vida')),
+      h('div', { class: 'brand' }, h('img', { src: 'icons/icon.svg', alt: '' }), h('span', {}, 'Rumbo')),
       sideNav,
-      h('div', { class: 'sidebar-foot' }, correo, h('button', { class: 'btn ghost small', onclick: () => auth.salir() }, 'Salir'))),
-    h('main', { class: 'main' }, h('header', { class: 'topbar' }, titulo), subnav, contenido),
+      h('div', { class: 'sidebar-foot' }, correo, h('button', { class: 'btn ghost small', onclick: salir }, 'Salir'))),
+    h('main', { class: 'main' }, h('header', { class: 'topbar' }, titulo, h('div', { class: 'top-actions' }, estadoRed)), subnav, contenido),
     bottomNav,
   );
-  return { layout, titulo, subnav, contenido, correo };
+  return { layout, titulo, subnav, contenido, correo, estadoRed };
 }
 
 async function mostrar() {
@@ -85,7 +92,7 @@ async function mostrar() {
   const ruta = rutaActual();
   const r = RUTAS[ruta];
   shell.titulo.textContent = r.sub ? 'Finanzas' : r.titulo;
-  document.title = `${r.titulo} · Mi Vida`;
+  document.title = `${r.titulo} · Rumbo`;
   document.querySelectorAll('.side-nav a').forEach((a) => a.classList.toggle('active', a.dataset.ruta === ruta));
   document.querySelectorAll('.bottom-nav a').forEach((a) => a.classList.toggle('active', a.dataset.tab === r.tab));
   shell.subnav.replaceChildren(...(r.sub
@@ -93,7 +100,7 @@ async function mostrar() {
   shell.contenido.replaceChildren(h('div', { class: 'loader' }, h('span'), h('span'), h('span')));
   window.scrollTo({ top: 0 });
   try {
-    await r.render(shell.contenido, { service, vida, irA, correo: sesion.user.email });
+    await r.render(shell.contenido, { service, vida, irA, correo: sesion.user.email, salir });
   } catch (e) {
     console.error(e);
     const offline = !navigator.onLine;
@@ -103,6 +110,37 @@ async function mostrar() {
       h('p', {}, offline ? 'Conéctate y vuelve a intentarlo.' : e.message),
       h('button', { class: 'btn primary', onclick: mostrar }, 'Reintentar')));
   }
+}
+
+async function salir() {
+  outbox.vaciar();
+  try { await caches.delete('rumbo-datos'); } catch { /* sin caché */ }
+  await auth.salir();
+}
+
+function pintarEstadoRed() {
+  if (!shell) return;
+  const pend = outbox.leer().length;
+  const off = !navigator.onLine;
+  shell.estadoRed.hidden = !off && !pend;
+  shell.estadoRed.className = `net-badge ${off ? 'off' : 'sync'}`;
+  shell.estadoRed.textContent = off ? `📡 Sin internet${pend ? ` · ${pend} por subir` : ''}` : `⏳ Subiendo ${pend}…`;
+}
+
+async function sincronizarAhora() {
+  if (!sesion || !navigator.onLine || !outbox.leer().length) { pintarEstadoRed(); return; }
+  pintarEstadoRed();
+  const { subidas, fallidas } = await sincronizar(supabase);
+  pintarEstadoRed();
+  if (subidas) { toast(`☁️ ${subidas} cambio${subidas === 1 ? '' : 's'} sincronizado${subidas === 1 ? '' : 's'}`); mostrar(); }
+  if (fallidas) toast(`${fallidas} cambio${fallidas === 1 ? '' : 's'} no se pudo subir`, 'error');
+}
+
+async function cargarTema() {
+  try {
+    const aj = await vida.ajustes.obtener();
+    if (aj.tema || aj.acento) aplicarTema({ tema: aj.tema, acento: aj.acento });
+  } catch { /* se queda el tema guardado */ }
 }
 
 function aplicarSesion(nueva) {
@@ -115,11 +153,13 @@ function aplicarSesion(nueva) {
     root.replaceChildren(shell.layout);
   }
   shell.correo.textContent = sesion.user.email;
-  if (cambioUsuario) mostrar();
+  if (cambioUsuario) { mostrar(); cargarTema(); sincronizarAhora(); }
 }
 
 window.addEventListener('hashchange', mostrar);
-window.addEventListener('offline', () => toast('Sin conexión a internet', 'error'));
+window.addEventListener('offline', () => { toast('Sin internet: tus cambios se guardan y se suben después', 'error'); pintarEstadoRed(); });
+window.addEventListener('online', sincronizarAhora);
+window.addEventListener('outbox', pintarEstadoRed);
 
 auth.onChange((s) => aplicarSesion(s));
 aplicarSesion(await auth.session());

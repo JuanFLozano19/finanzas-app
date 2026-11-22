@@ -94,7 +94,7 @@ export class UniversidadService {
 export class TrabajoService extends CrudService {
   constructor(repos) { super(repos.horas); this.ajustes = repos.ajustes; this.movimientos = repos.movimientos; }
   async listado() {
-    const [registros, ajustes] = await Promise.all([this.repo.list({ orderBy: 'fecha' }), this.ajustes.findOne()]);
+    const [registros, ajustes] = await Promise.all([this.repo.list({ orderBy: 'fecha' }), this.ajustes.findOne([], 'updated_at')]);
     return { registros, tarifa: ajustes?.tarifa_hora ? Number(ajustes.tarifa_hora) : null, resumen: resumenHoras(registros) };
   }
   guardarTarifa(tarifa_hora) { return this.ajustes.upsert({ tarifa_hora }, 'user_id'); }
@@ -137,4 +137,41 @@ export const crearServiciosVida = (repos) => ({
   universidad: new UniversidadService(repos),
   trabajo: new TrabajoService(repos),
   salud: new SaludService(repos),
+  ajustes: new AjustesService(repos),
+  exportar: new ExportService(repos),
 });
+
+export class AjustesService {
+  constructor(repos) { this.repo = repos.ajustes; }
+  async obtener() { return (await this.repo.findOne([], 'updated_at')) || {}; }
+  guardar(parcial) { return this.repo.upsert(parcial, 'user_id'); }
+}
+
+/** Exporta todas las tablas a un archivo de Excel (una hoja por tabla). */
+export class ExportService {
+  constructor(repos) { this.repos = repos; }
+  async exportar() {
+    const HOJAS = [
+      ['Movimientos', 'movimientos', 'fecha'], ['Cuentas', 'cuentas'], ['Presupuestos', 'presupuestos'],
+      ['Pagos fijos', 'recurrentes'], ['Deudas', 'deudas'], ['Pagos de deudas', 'pagos', 'fecha'],
+      ['Préstamos', 'prestamos'], ['Abonos préstamos', 'abonos', 'fecha'], ['Metas de ahorro', 'metas'],
+      ['Aportes a metas', 'aportes', 'fecha'], ['Lista de deseos', 'deseos'], ['Precios deseos', 'precios', 'fecha'],
+      ['Tareas', 'tareas'], ['Agenda', 'eventos', 'fecha'], ['Hábitos', 'habitos'], ['Registros hábitos', 'registrosHabito', 'fecha'],
+      ['Notas y diario', 'notas', 'fecha'], ['Materias', 'materias'], ['Evaluaciones', 'evaluaciones'],
+      ['Apuntes', 'apuntes'], ['Trabajos en grupo', 'proyectos'], ['Sesiones de estudio', 'sesiones', 'fecha'],
+      ['Horas de trabajo', 'horas', 'fecha'], ['Entrenamientos', 'entrenamientos', 'fecha'], ['Salud diaria', 'salud', 'fecha'],
+      ['Rutinas', 'rutinaItems'], ['Metas de vida', 'metasVida'], ['Pasos metas de vida', 'pasos'],
+      ['Lecturas', 'lecturas'], ['Contactos', 'contactos'], ['Revisiones semanales', 'revisiones', 'semana'],
+    ];
+    const XLSX = await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.mjs');
+    const datos = await Promise.all(HOJAS.map(([, repo, orden]) => this.repos[repo].list({ orderBy: orden || 'created_at', ascending: true })));
+    const wb = XLSX.utils.book_new();
+    HOJAS.forEach(([nombre], i) => {
+      const filas = datos[i].map(({ user_id, _pendiente, ...resto }) => Object.fromEntries(
+        Object.entries(resto).map(([k, v]) => [k, Array.isArray(v) || (v && typeof v === 'object') ? JSON.stringify(v) : v])));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filas.length ? filas : [{ '(vacío)': '' }]), nombre.slice(0, 31));
+    });
+    XLSX.writeFile(wb, `rumbo-respaldo-${today()}.xlsx`);
+    return datos.reduce((a, d) => a + d.length, 0);
+  }
+}

@@ -20,7 +20,7 @@ export function renderAuth(root, authService) {
   cambio.addEventListener('click', () => { modo = modo === 'login' ? 'registro' : 'login'; pintar(); });
 
   const form = h('form', { class: 'auth-card' },
-    h('div', { class: 'brand-big' }, h('img', { src: 'icons/icon.svg', alt: '' }), h('span', {}, 'Mi Vida')),
+    h('div', { class: 'brand-big' }, h('img', { src: 'icons/icon.svg', alt: '' }), h('span', {}, 'Rumbo')),
     h('p', { class: 'muted' }, 'Tu agenda, tareas, hábitos, universidad, trabajo, salud y plata en un solo lugar.'),
     titulo,
     h('label', { class: 'field' }, h('span', { class: 'label' }, 'Correo'),
