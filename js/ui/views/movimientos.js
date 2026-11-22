@@ -74,3 +74,9 @@ export async function renderMovimientos(cont, ctx) {
       : emptyState('📭', `Nada en ${monthLabel(mesSel).toLowerCase()}`, 'Usa los botones de arriba para registrar ingresos o gastos.'),
   );
 }
+
+/** Abre directo el formulario de un ingreso o gasto nuevo (atajos del ícono de la app). */
+export async function nuevoMovimiento(ctx, tipo, recargar) {
+  const cuentas = await ctx.plata.listaCuentas().catch(() => []);
+  abrirForm(ctx.service, tipo, null, recargar, cuentas, ctx.plata);
+}

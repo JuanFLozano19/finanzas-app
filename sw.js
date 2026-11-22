@@ -2,7 +2,7 @@
 // - Archivos de la app: red primero (revalidando), caché si no hay internet.
 // - Lecturas de datos (Supabase REST GET): red primero; si no hay internet, la última copia.
 // - Escrituras nunca pasan por aquí: si no hay red, la app las guarda en su cola (outbox).
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE = `rumbo-app-${VERSION}`;
 const DATOS = 'rumbo-datos';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './css/styles.css', './js/app.js',

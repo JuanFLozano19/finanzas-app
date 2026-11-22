@@ -730,3 +730,25 @@ a.btn { text-decoration: none; color: inherit; display: inline-flex; align-items
 .fc-front { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; margin: 0; white-space: pre-wrap; }
 .fc-back { margin: 0; padding-top: 14px; border-top: 1px dashed var(--border); width: 100%; white-space: pre-wrap; font-size: 1.05rem; }
 .fc-box { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-weight: 800; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); flex-shrink: 0; }
+
+/* ===== Bloqueo ===== */
+.lock { position: fixed; inset: 0; z-index: 500; background: var(--noche); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  padding: calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 20px); }
+.lock::before { content: ''; position: absolute; inset: auto -120px -160px auto; width: 420px; height: 420px; border-radius: 50%; z-index: -1;
+  background: radial-gradient(circle, color-mix(in srgb, var(--brand) 45%, transparent), transparent 65%); }
+.lock-logo { width: 64px; height: 64px; }
+.lock h2 { font-size: 1.3rem; }
+.lock-dots { display: flex; gap: 14px; min-height: 16px; }
+.lock-dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,.6); }
+.lock-dots i.on { background: var(--aguja); border-color: var(--aguja); }
+.lock-msg { min-height: 1.2em; margin: 0; color: #ffb68a; font-weight: 600; }
+.lock-keys { display: grid; grid-template-columns: repeat(3, 76px); gap: 14px; }
+.lock-key { width: 76px; height: 76px; border-radius: 50%; border: 0; background: rgba(255,255,255,.08); color: #fff; font: 600 1.6rem var(--font-display); cursor: pointer; }
+.lock-key:active { background: rgba(255,255,255,.2); }
+.lock-key:disabled { opacity: .35; }
+.lock-forgot { color: #b8c3da; }
+.lock-help { color: #8f9cb8; text-align: center; max-width: 30ch; }
+.lock.shake .lock-dots { animation: sacudir .35s; }
+@keyframes sacudir { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+.add-bar .qty { flex: 0 0 84px; min-width: 0; }
+.add-bar .search { min-width: 0; }

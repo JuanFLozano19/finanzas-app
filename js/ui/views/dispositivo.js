@@ -1,11 +1,13 @@
 // Secciones de Ajustes: notificaciones y huella/rostro.
-import { h, toast, confirmar } from '../dom.js';
+import { h, toast, confirmar, formulario } from '../dom.js';
+import { bloqueo } from '../../core/bloqueo.js';
+
 import { PREFS_NOTIF } from '../../services/DispositivoService.js';
 import { fmtDate } from '../../core/format.js';
 
 export async function seccionNotificaciones({ notificaciones: svc }, aj, recargar) {
   const est = await svc.estado();
-  const prefs = { turnos: true, eventos: true, tareas: true, evaluaciones: true, habitos: true, cumpleanos: true, pagos: true, ...(aj.notificaciones || {}) };
+  const prefs = { agua: false, turnos: true, eventos: true, tareas: true, evaluaciones: true, habitos: true, cumpleanos: true, pagos: true, ...(aj.notificaciones || {}) };
   const accion = (fn, ok) => async (e) => {
     const b = e.currentTarget; b.disabled = true;
     try { const r = await fn(); if (ok) toast(typeof ok === 'function' ? ok(r) : ok); recargar(); }
@@ -50,4 +52,49 @@ export async function seccionPasskeys({ passkeys: svc }, _aj, recargar) {
       try { await svc.registrar(); toast('🔐 Huella registrada. Ya puedes entrar con ella.'); recargar(); }
       catch (err) { toast(err.message, 'error'); b.disabled = false; }
     } }, 'Registrar este dispositivo'));
+}
+
+// ---------- Bloqueo con PIN / huella ----------
+
+const TIEMPOS = [[0, 'Cada vez que salgo de la app'], [1, 'Después de 1 minuto'], [5, 'Después de 5 minutos'], [15, 'Después de 15 minutos']];
+
+function formPin(titulo, onPin) {
+  formulario({
+    titulo, enviar: 'Guardar PIN',
+    campos: [
+      { name: 'pin', label: 'PIN de 4 a 6 números', type: 'password', inputmode: 'numeric', required: true, autocomplete: 'new-password', placeholder: '••••' },
+      { name: 'pin2', label: 'Repite el PIN', type: 'password', inputmode: 'numeric', required: true, autocomplete: 'new-password' },
+    ],
+    validar: (d) => {
+      if (!/^\d{4,6}$/.test(d.pin || '')) throw new Error('El PIN debe tener entre 4 y 6 números.');
+      if (d.pin !== d.pin2) throw new Error('Los PIN no coinciden.');
+    },
+    onSubmit: async (d) => onPin(d.pin),
+  });
+}
+
+export async function seccionBloqueo(_ctx, _aj, recargar) {
+  const activo = bloqueo.activo();
+  const conf = bloqueo.config() || {};
+  const huella = activo && await bloqueo.huellaDisponible();
+  return h('section', { class: 'card' },
+    h('h3', {}, '🔒 Bloquear la app'),
+    h('p', { class: 'muted' }, 'Pide un PIN (o tu huella) al abrir Rumbo en este dispositivo, para que nadie más vea tu plata ni tu diario.'),
+    activo ? [
+      h('p', { class: 'meta-msg' }, '✅ Bloqueo activado en este dispositivo'),
+      h('label', { class: 'field' }, h('span', { class: 'label' }, 'Bloquear'),
+        h('select', { onchange: (e) => { bloqueo.cambiarMinutos(Number(e.target.value)); toast('Guardado'); } },
+          TIEMPOS.map(([v, l]) => h('option', { value: v, selected: (conf.minutos ?? 1) === v }, l)))),
+      huella ? h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: bloqueo.tieneHuella(), onchange: async (e) => {
+        try {
+          if (e.target.checked) { await bloqueo.registrarHuella(); toast('👆 Huella activada para desbloquear'); } else { bloqueo.quitarHuella(); toast('Huella desactivada'); }
+        } catch { e.target.checked = false; toast('No se pudo activar la huella en este dispositivo', 'error'); }
+      } }), 'Desbloquear también con huella o rostro') : null,
+      h('div', { class: 'card-actions' },
+        h('button', { class: 'btn ghost', onclick: () => formPin('Nuevo PIN', async (pin) => { await bloqueo.definirPin(pin, conf.minutos ?? 1); toast('PIN cambiado'); recargar(); }) }, 'Cambiar PIN'),
+        h('button', { class: 'btn ghost', onclick: async () => {
+          if (await confirmar('¿Quitar el bloqueo de este dispositivo?', { aceptar: 'Quitar bloqueo' })) { bloqueo.desactivar(); toast('Bloqueo desactivado'); recargar(); }
+        } }, 'Quitar bloqueo')),
+    ] : h('button', { class: 'btn primary', onclick: () => formPin('Crea tu PIN', async (pin) => { await bloqueo.definirPin(pin, 1); toast('🔒 Bloqueo activado'); recargar(); }) }, 'Activar bloqueo'),
+  );
 }

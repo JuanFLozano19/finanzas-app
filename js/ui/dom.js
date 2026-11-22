@@ -97,7 +97,7 @@ function campo(f, valor) {
     input = h('input', {
       ...comunes,
       type: esDinero ? 'number' : f.type || 'text',
-      inputmode: esDinero ? 'numeric' : undefined,
+      inputmode: esDinero ? 'numeric' : f.inputmode,
       min: f.min ?? (esDinero ? '1' : undefined), step: esDinero ? '1' : f.step,
       value: valor ?? '', list: f.list ? `${id}-list` : undefined, autocomplete: f.autocomplete || 'off',
     });

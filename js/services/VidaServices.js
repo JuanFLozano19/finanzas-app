@@ -132,14 +132,16 @@ export class TurnosService {
 }
 
 export class SaludService {
-  constructor(repos) { this.entrenamientos = repos.entrenamientos; this.salud = repos.salud; }
+  constructor(repos) { this.entrenamientos = repos.entrenamientos; this.salud = repos.salud; this.ajustes = repos.ajustes; }
+  guardarMetaAgua(meta_agua) { return this.ajustes.upsert({ meta_agua }, 'user_id'); }
   async listado(hoy = today()) {
-    const [entrenamientos, registros] = await Promise.all([
+    const [entrenamientos, registros, aj] = await Promise.all([
       this.entrenamientos.list({ orderBy: 'fecha', filters: [['fecha', 'gte', addDays(hoy, -90)]] }),
       this.salud.list({ orderBy: 'fecha', filters: [['fecha', 'gte', addDays(hoy, -90)]] }),
+      this.ajustes.findOne([], 'updated_at'),
     ]);
     return {
-      entrenamientos, registros,
+      entrenamientos, registros, metaAgua: aj?.meta_agua || 8,
       hoy: registros.find((r) => r.fecha === hoy) || { fecha: hoy },
       semana: resumenSemanaSalud(entrenamientos, registros, hoy),
     };

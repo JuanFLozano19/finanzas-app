@@ -28,7 +28,7 @@ const minutos = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); 
 const h12 = (t: string) => { if (!t) return ''; const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'a. m.' : 'p. m.'}`; };
 
 type Msg = { clave: string; title: string; body: string; url: string; tag?: string };
-const PREFS = { turnos: true, eventos: true, tareas: true, evaluaciones: true, habitos: true, cumpleanos: true, pagos: true };
+const PREFS = { agua: false, turnos: true, eventos: true, tareas: true, evaluaciones: true, habitos: true, cumpleanos: true, pagos: true };
 
 async function mensajesPara(userId: string, prefs: typeof PREFS): Promise<Msg[]> {
   const ahora = local();
@@ -107,6 +107,21 @@ async function mensajesPara(userId: string, prefs: typeof PREFS): Promise<Msg[]>
     const hechos = new Set((rg || []).map((x) => x.habito_id));
     const faltan = (h || []).filter((x) => (x.dias || []).includes(weekday(hoy)) && !hechos.has(x.id));
     if (faltan.length) out.push({ clave: `hab:${hoy}`, title: `🌱 Te falta${faltan.length === 1 ? '' : 'n'} ${faltan.length} hábito${faltan.length === 1 ? '' : 's'} hoy`, body: faltan.map((x) => `${x.icono} ${x.nombre}`).join(' · '), url: './#habitos' });
+  }
+
+  // Agua: entre 9 a. m. y 8 p. m., cada 2 horas, solo si vas atrasado respecto a tu meta
+  if (prefs.agua && hora >= 9 && hora <= 20) {
+    const [{ data: sal }, { data: aj }] = await Promise.all([
+      q('registros_salud').eq('fecha', hoy).maybeSingle(),
+      db.from('ajustes').select('meta_agua').eq('user_id', userId).maybeSingle(),
+    ]);
+    const meta = aj?.meta_agua || 8;
+    const vasos = sal?.vasos_agua || 0;
+    const esperado = Math.floor((meta * (hora - 8)) / 12);
+    if (vasos < esperado) {
+      out.push({ clave: `agua:${hoy}:${Math.floor(hora / 2)}`, title: '💧 Hora de tomar agua',
+        body: `Llevas ${vasos} de ${meta} vasos hoy. A esta hora deberías ir en ${esperado}.`, url: './#salud', tag: 'agua' });
+    }
   }
 
   if (weekday(hoy) === 0 && hora >= 18) {

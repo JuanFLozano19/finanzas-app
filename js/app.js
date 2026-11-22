@@ -10,10 +10,16 @@ import { PlataService } from './services/PlataService.js';
 import { HorarioService, ApuntesService, GruposService, EstudioService, CarreraService, PlanRepasoService, FlashcardsService } from './services/UniversidadExtra.js';
 import { renderCarrera, renderMalla } from './ui/views/carrera.js';
 import { renderRepaso } from './ui/views/repaso.js';
+import { MercadoService } from './services/DiaService.js';
+import { renderMercado } from './ui/views/mercado.js';
+import { montarBloqueo, bloqueo } from './core/bloqueo.js';
+import { nuevoMovimiento } from './ui/views/movimientos.js';
+import { formTurno } from './ui/views/trabajo.js';
+import { formTarea } from './ui/components.js';
 import { BienestarService, AsistenteService } from './services/BienestarService.js';
 import { abrirAsistente } from './ui/asistente.js';
 import { NotificacionesService, PasskeyService } from './services/DispositivoService.js';
-import { seccionNotificaciones, seccionPasskeys } from './ui/views/dispositivo.js';
+import { seccionNotificaciones, seccionPasskeys, seccionBloqueo } from './ui/views/dispositivo.js';
 import { renderRutinas, renderMetasVida, renderLectura, renderContactos, renderEnfoque, renderRevision } from './ui/views/bienestar.js';
 import { h, toast, tabs } from './ui/dom.js';
 import { renderAuth } from './ui/views/auth.js';
@@ -55,7 +61,8 @@ const bienestar = new BienestarService(repos);
 const asistente = new AsistenteService({ service, vida, plata, bienestar, repos });
 const notificaciones = new NotificacionesService(repos, supabase);
 const passkeys = new PasskeyService(supabase);
-seccionesAjustes.unshift(seccionNotificaciones, seccionPasskeys);
+seccionesAjustes.unshift(seccionNotificaciones, seccionBloqueo, seccionPasskeys);
+const mercado = new MercadoService(repos, service);
 seccionesAjustes.push(seccionReparto);
 
 // Para agregar un módulo nuevo basta con registrarlo aquí (abierto/cerrado).
@@ -67,6 +74,7 @@ const RUTAS = {
   tareas: { titulo: 'Tareas', icono: '✅', render: renderTareas, tab: 'tareas', grupo: 'Mi día' },
   habitos: { titulo: 'Hábitos', icono: '🌱', render: renderHabitos, tab: 'mas', grupo: 'Mi día', enMas: true, desc: 'Rachas y constancia' },
   rutinas: { titulo: 'Rutinas', icono: '☀️', render: renderRutinas, tab: 'mas', grupo: 'Mi día', enMas: true, desc: 'Mañana y noche' },
+  mercado: { titulo: 'Lista de mercado', icono: '🛒', render: renderMercado, tab: 'mas', grupo: 'Mi día', enMas: true, desc: 'Lo que hay que comprar', menu: 'Mercado' },
   notas: { titulo: 'Diario y notas', icono: '📔', render: renderNotas, tab: 'mas', grupo: 'Mi día', enMas: true, desc: 'Ideas y cómo te fue' },
   universidad: { titulo: 'Universidad', icono: '🎓', render: renderUniversidad, tab: 'mas', grupo: 'Universidad', enMas: true, desc: 'Materias, horario, apuntes y estudio', sub: 'universidad', menu: 'Materias' },
   horario: { titulo: 'Horario', icono: '🕘', render: renderHorario, tab: 'mas', grupo: 'Universidad', sub: 'universidad' },
@@ -136,10 +144,26 @@ function construirShell() {
   return { layout, titulo, subnav, contenido, correo, estadoRed };
 }
 
-const ctxBase = () => ({ service, vida, plata, ...uni, bienestar, asistente, notificaciones, passkeys, irA, correo: sesion?.user.email, salir, abrirAsistente: () => abrirAsistente(asistente, mostrar) });
+const ctxBase = () => ({ service, vida, plata, ...uni, bienestar, asistente, notificaciones, passkeys, mercado, irA, correo: sesion?.user.email, salir, abrirAsistente: () => abrirAsistente(asistente, mostrar) });
+
+// Atajos del ícono de la app (manifest "shortcuts"): abren la pantalla y su formulario.
+const ACCIONES = {
+  'nuevo-gasto': ['movimientos', (ctx) => nuevoMovimiento(ctx, 'gasto', mostrar)],
+  'nuevo-ingreso': ['movimientos', (ctx) => nuevoMovimiento(ctx, 'ingreso', mostrar)],
+  'nuevo-turno': ['trabajo', async (ctx) => formTurno(ctx.vida.trabajo, null, (await ctx.vida.trabajo.datos()).tipos, mostrar)],
+  'nueva-tarea': ['tareas', async (ctx) => formTarea(ctx.vida, null, (await ctx.vida.tareas.listado()).materias, mostrar)],
+  asistente: ['hoy', (ctx) => ctx.abrirAsistente()],
+};
 
 async function mostrar() {
   if (!sesion) return;
+  const accion = ACCIONES[location.hash.slice(1)];
+  if (accion) {
+    history.replaceState(null, '', `#${accion[0]}`);
+    await mostrar();
+    try { await accion[1](ctxBase()); } catch (e) { toast(e.message, 'error'); }
+    return;
+  }
   const ruta = rutaActual();
   const r = RUTAS[ruta];
   shell.titulo.textContent = r.sub ? RUTAS[r.sub].titulo : r.titulo;
@@ -163,6 +187,8 @@ async function mostrar() {
       h('button', { class: 'btn primary', onclick: mostrar }, 'Reintentar')));
   }
 }
+
+const bloquear = montarBloqueo({ alOlvidar: () => salir() });
 
 async function salir() {
   outbox.vaciar();
@@ -205,7 +231,7 @@ function aplicarSesion(nueva) {
     root.replaceChildren(shell.layout);
   }
   shell.correo.textContent = sesion.user.email;
-  if (cambioUsuario) { mostrar(); cargarTema(); sincronizarAhora(); }
+  if (cambioUsuario) { mostrar(); cargarTema(); sincronizarAhora(); if (bloqueo.activo()) bloquear(); }
 }
 
 window.addEventListener('hashchange', mostrar);

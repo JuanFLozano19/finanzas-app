@@ -10,7 +10,7 @@ const b64aUint8 = (b64) => {
 export const PREFS_NOTIF = [
   ['turnos', '💼 Turnos de trabajo (antes y la noche anterior)'], ['eventos', '🗓 Clases y eventos (30 min antes)'], ['tareas', '✅ Tareas del día (7 a. m.)'],
   ['evaluaciones', '📚 Evaluaciones y entregas de mañana (7 p. m.)'], ['habitos', '🌱 Hábitos pendientes (8 p. m.)'],
-  ['cumpleanos', '🎂 Cumpleaños'], ['pagos', '🔁 Pagos fijos y préstamos'],
+  ['cumpleanos', '🎂 Cumpleaños'], ['pagos', '🔁 Pagos fijos y préstamos'], ['agua', '💧 Recordatorio de agua (cada 2 h si vas atrasado)'],
 ];
 
 export class NotificacionesService {

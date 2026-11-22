@@ -3,7 +3,6 @@ import { today, fmtDate } from '../../core/format.js';
 
 const TIPOS = ['Gimnasio', 'Correr', 'Caminar', 'Fútbol', 'Bicicleta', 'Natación', 'Yoga', 'Ejercicio en casa', 'Baloncesto'];
 const INTENSIDAD = [[1, 'Suave'], [2, 'Moderada'], [3, 'Intensa']];
-const META_AGUA = 8;
 
 function formEntreno(vida, en, recargar) {
   formulario({
@@ -37,7 +36,7 @@ function formHoy(vida, reg, recargar) {
 export async function renderSalud(cont, ctx) {
   const { vida } = ctx;
   const recargar = () => renderSalud(cont, ctx);
-  const { entrenamientos, hoy, semana } = await vida.salud.listado();
+  const { entrenamientos, hoy, semana, metaAgua: META_AGUA, registros } = await vida.salud.listado();
   const agua = hoy.vasos_agua ?? 0;
   const cambiarAgua = async (n) => {
     const v = Math.max(0, agua + n);
@@ -54,7 +53,12 @@ export async function renderSalud(cont, ctx) {
         h('button', { class: 'round-btn', 'aria-label': 'Quitar un vaso', onclick: () => cambiarAgua(-1), disabled: agua === 0 }, '−'),
         h('div', { class: 'glasses' }, Array.from({ length: Math.max(META_AGUA, agua) }, (_, i) => h('span', { class: i < agua ? 'on' : '' }, '💧'))),
         h('button', { class: 'round-btn', 'aria-label': 'Agregar un vaso', onclick: () => cambiarAgua(1) }, '+')),
-      h('small', {}, `${agua} de ${META_AGUA} vasos`)),
+      h('button', { class: 'link light', onclick: () => formulario({
+        titulo: 'Meta de agua', valores: { meta: META_AGUA },
+        campos: [{ name: 'meta', label: 'Vasos al día', type: 'number', min: '1', step: '1', required: true, hint: 'Activa el recordatorio de agua en Ajustes → Notificaciones.' }],
+        validar: (d) => { if (d.meta < 1 || d.meta > 30) throw new Error('Pon una meta entre 1 y 30 vasos.'); },
+        onSubmit: async (d) => { await vida.salud.guardarMetaAgua(d.meta); toast('Meta guardada 💧'); recargar(); },
+      }) }, `${agua} de ${META_AGUA} vasos · cambiar meta`)),
 
     h('div', { class: 'stats' },
       h('div', { class: 'stat' }, h('small', {}, 'Ejercicio (7 días)'), h('b', {}, `${semana.minutosEjercicio} min`), h('small', { class: 'muted' }, `${semana.sesiones} sesiones`)),
