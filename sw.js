@@ -1,6 +1,6 @@
 // Service worker: guarda la "cáscara" de la app para que abra rápido e instale como app.
 // Los datos (Supabase) nunca se guardan en caché: siempre van a la red.
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = `finanzas-${VERSION}`;
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/styles.css',
@@ -14,7 +14,10 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: 'reload' evita guardar copias viejas que tenga el navegador.
+  e.waitUntil(caches.open(CACHE)
+    .then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -30,8 +33,10 @@ const cacheable = (url) => url.origin === self.location.origin
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || !cacheable(url)) return;
+  // Archivos propios: siempre se revalidan con el servidor (no-cache) para recibir actualizaciones.
+  const propio = url.origin === self.location.origin;
   e.respondWith(
-    fetch(e.request)
+    (propio ? fetch(e.request.url, { cache: 'no-cache' }) : fetch(e.request))
       .then((res) => {
         if (res.ok || res.type === 'opaque') {
           const copia = res.clone();

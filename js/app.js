@@ -124,6 +124,19 @@ window.addEventListener('offline', () => toast('Sin conexión a internet', 'erro
 auth.onChange((s) => aplicarSesion(s));
 aplicarSesion(await auth.session());
 
+// Service worker: busca actualizaciones al abrir y recarga una vez cuando hay versión nueva.
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('SW no registrado', e));
+  const teniaControl = Boolean(navigator.serviceWorker.controller);
+  let recargando = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!teniaControl || recargando) return;
+    recargando = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+    .then((reg) => {
+      reg.update();
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update(); });
+    })
+    .catch((e) => console.warn('SW no registrado', e));
 }
