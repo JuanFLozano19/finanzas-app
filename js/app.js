@@ -6,6 +6,7 @@ import { outbox } from './data/outbox.js';
 import { AuthService } from './services/AuthService.js';
 import { FinanzasService } from './services/FinanzasService.js';
 import { crearServiciosVida } from './services/VidaServices.js';
+import { PlataService } from './services/PlataService.js';
 import { h, toast, tabs } from './ui/dom.js';
 import { renderAuth } from './ui/views/auth.js';
 import { renderHoy } from './ui/views/hoy.js';
@@ -21,7 +22,10 @@ import { renderMovimientos } from './ui/views/movimientos.js';
 import { renderDeudas } from './ui/views/deudas.js';
 import { renderMetas } from './ui/views/metas.js';
 import { crearVistaMas } from './ui/views/mas.js';
-import { renderAjustes } from './ui/views/ajustes.js';
+import { renderAjustes, seccionesAjustes } from './ui/views/ajustes.js';
+import { renderCuentas, renderPresupuestos, renderFijos, renderPrestamos, seccionReparto } from './ui/views/plata.js';
+import { renderDeseos } from './ui/views/deseos.js';
+import { renderEstadisticas } from './ui/views/estadisticas.js';
 
 aplicarTema(temaGuardado());
 
@@ -29,6 +33,8 @@ const repos = crearRepositorios(supabase);
 const auth = new AuthService(supabase);
 const service = new FinanzasService(repos);
 const vida = crearServiciosVida(repos);
+const plata = new PlataService(repos);
+seccionesAjustes.push(seccionReparto);
 
 // Para agregar un módulo nuevo basta con registrarlo aquí (abierto/cerrado).
 // tab = a qué botón de la barra inferior pertenece; grupo = sección del menú lateral.
@@ -41,16 +47,22 @@ const RUTAS = {
   universidad: { titulo: 'Universidad', icono: '🎓', render: renderUniversidad, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Materias, notas y promedio' },
   trabajo: { titulo: 'Trabajo', icono: '💼', render: renderTrabajo, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Horas y pagos' },
   salud: { titulo: 'Salud', icono: '💪', render: renderSalud, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Ejercicio, sueño y agua' },
-  finanzas: { titulo: 'Finanzas', icono: '💰', render: renderResumen, tab: 'finanzas', grupo: 'Finanzas', sub: 'finanzas', menu: 'Resumen' },
-  movimientos: { titulo: 'Movimientos', icono: '↕️', render: renderMovimientos, tab: 'finanzas', grupo: 'Finanzas', sub: 'finanzas' },
-  deudas: { titulo: 'Deudas', icono: '💳', render: renderDeudas, tab: 'finanzas', grupo: 'Finanzas', sub: 'finanzas' },
-  metas: { titulo: 'Metas', icono: '🎯', render: renderMetas, tab: 'finanzas', grupo: 'Finanzas', sub: 'finanzas' },
+  finanzas: { titulo: 'Plata', icono: '💰', render: renderResumen, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas', menu: 'Resumen' },
+  movimientos: { titulo: 'Movimientos', icono: '↕️', render: renderMovimientos, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
+  cuentas: { titulo: 'Cuentas', icono: '🏦', render: renderCuentas, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
+  presupuestos: { titulo: 'Presupuestos', icono: '🧮', render: renderPresupuestos, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
+  fijos: { titulo: 'Pagos fijos', icono: '🔁', render: renderFijos, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
+  deudas: { titulo: 'Deudas', icono: '💳', render: renderDeudas, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
+  prestamos: { titulo: 'Préstamos', icono: '🤝', render: renderPrestamos, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas', menu: 'Me deben' },
+  metas: { titulo: 'Metas', icono: '🎯', render: renderMetas, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
+  deseos: { titulo: 'Deseos', icono: '✨', render: renderDeseos, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
+  estadisticas: { titulo: 'Estadísticas', icono: '📊', render: renderEstadisticas, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
 };
 RUTAS.ajustes = { titulo: 'Ajustes', icono: '⚙️', render: renderAjustes, tab: 'mas', grupo: 'Rumbo', enMas: true, desc: 'Tema, respaldo y cuenta' };
 RUTAS.mas = { titulo: 'Más', icono: '☰', render: crearVistaMas(RUTAS), tab: 'mas', oculta: true };
 
-const TABS = [['hoy', '🏠', 'Hoy'], ['agenda', '🗓', 'Agenda'], ['tareas', '✅', 'Tareas'], ['finanzas', '💰', 'Finanzas'], ['mas', '☰', 'Más']];
-const SUBTABS = { finanzas: ['finanzas', 'movimientos', 'deudas', 'metas'] };
+const TABS = [['hoy', '🏠', 'Hoy'], ['agenda', '🗓', 'Agenda'], ['tareas', '✅', 'Tareas'], ['finanzas', '💰', 'Plata'], ['mas', '☰', 'Más']];
+const SUBTABS = { finanzas: ['finanzas', 'movimientos', 'cuentas', 'presupuestos', 'fijos', 'deudas', 'prestamos', 'metas', 'deseos', 'estadisticas'] };
 
 const root = document.getElementById('app');
 let sesion = null;
@@ -91,16 +103,17 @@ async function mostrar() {
   if (!sesion) return;
   const ruta = rutaActual();
   const r = RUTAS[ruta];
-  shell.titulo.textContent = r.sub ? 'Finanzas' : r.titulo;
+  shell.titulo.textContent = r.sub ? RUTAS[r.sub].titulo : r.titulo;
   document.title = `${r.titulo} · Rumbo`;
   document.querySelectorAll('.side-nav a').forEach((a) => a.classList.toggle('active', a.dataset.ruta === ruta));
   document.querySelectorAll('.bottom-nav a').forEach((a) => a.classList.toggle('active', a.dataset.tab === r.tab));
   shell.subnav.replaceChildren(...(r.sub
     ? [tabs(SUBTABS[r.sub].map((id) => [id, RUTAS[id].menu || RUTAS[id].titulo]), ruta, irA)] : []));
+  shell.subnav.querySelector('.tab.active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
   shell.contenido.replaceChildren(h('div', { class: 'loader' }, h('span'), h('span'), h('span')));
   window.scrollTo({ top: 0 });
   try {
-    await r.render(shell.contenido, { service, vida, irA, correo: sesion.user.email, salir });
+    await r.render(shell.contenido, { service, vida, plata, irA, correo: sesion.user.email, salir });
   } catch (e) {
     console.error(e);
     const offline = !navigator.onLine;

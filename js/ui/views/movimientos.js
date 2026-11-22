@@ -5,7 +5,7 @@ import { CATEGORIAS } from '../../config.js';
 let mesSel = currentMonth();
 let filtro = 'todos';
 
-function abrirForm(service, tipo, mov, recargar) {
+function abrirForm(service, tipo, mov, recargar, cuentas = []) {
   const esIngreso = tipo === 'ingreso';
   formulario({
     titulo: `${mov ? 'Editar' : 'Nuevo'} ${esIngreso ? 'ingreso' : 'gasto'}`,
@@ -15,7 +15,9 @@ function abrirForm(service, tipo, mov, recargar) {
       { name: 'categoria', label: 'Categoría', type: 'select', options: CATEGORIAS[tipo], required: true },
       { name: 'fecha', label: 'Fecha', type: 'date', required: true },
       { name: 'descripcion', label: 'Descripción (opcional)', placeholder: esIngreso ? 'Ej: horas de la semana' : 'Ej: almuerzo' },
-    ],
+      cuentas.length ? { name: 'cuenta_id', label: esIngreso ? '¿A qué cuenta entró?' : '¿De qué cuenta salió?', type: 'select',
+        options: [['', '— Sin cuenta —'], ...cuentas.filter((c) => c.activa || c.id === mov?.cuenta_id).map((c) => [c.id, `${c.icono} ${c.nombre}`])] } : null,
+    ].filter(Boolean),
     onSubmit: async (datos) => {
       await service.guardarMovimiento(mov?.id, { ...datos, tipo });
       toast(mov ? 'Cambios guardados' : `${esIngreso ? 'Ingreso' : 'Gasto'} registrado`);
@@ -25,9 +27,11 @@ function abrirForm(service, tipo, mov, recargar) {
   });
 }
 
-export async function renderMovimientos(cont, { service }) {
-  const recargar = () => renderMovimientos(cont, { service });
-  const { movimientos, resumen } = await service.movimientosDelMes(mesSel);
+export async function renderMovimientos(cont, ctx) {
+  const { service, plata } = ctx;
+  const recargar = () => renderMovimientos(cont, ctx);
+  const [{ movimientos, resumen }, cuentas] = await Promise.all([service.movimientosDelMes(mesSel), plata.listaCuentas()]);
+  const cuentaDe = (id) => cuentas.find((c) => c.id === id);
   const visibles = filtro === 'todos' ? movimientos : movimientos.filter((m) => m.tipo === filtro);
 
   const porFecha = new Map();
@@ -52,17 +56,17 @@ export async function renderMovimientos(cont, { service }) {
       h('div', { class: 'stat' }, h('small', {}, 'Balance'), money(resumen.balance, resumen.balance < 0 ? 'neg' : '')),
     ),
     h('div', { class: 'action-row' },
-      h('button', { class: 'btn income', onclick: () => abrirForm(service, 'ingreso', null, recargar) }, '+ Ingreso'),
-      h('button', { class: 'btn expense', onclick: () => abrirForm(service, 'gasto', null, recargar) }, '+ Gasto'),
+      h('button', { class: 'btn income', onclick: () => abrirForm(service, 'ingreso', null, recargar, cuentas) }, '+ Ingreso'),
+      h('button', { class: 'btn expense', onclick: () => abrirForm(service, 'gasto', null, recargar, cuentas) }, '+ Gasto'),
     ),
     visibles.length
       ? [...porFecha.entries()].map(([fecha, items]) => h('section', { class: 'day' },
         h('h4', { class: 'day-title' }, fmtDate(fecha)),
         h('ul', { class: 'list' }, items.map((m) => h('li', {},
-          h('button', { class: 'list-item', onclick: () => abrirForm(service, m.tipo, m, recargar) },
+          h('button', { class: 'list-item', onclick: () => abrirForm(service, m.tipo, m, recargar, cuentas) },
             h('span', { class: `dot ${m.tipo}` }, m.tipo === 'ingreso' ? '↑' : '↓'),
             h('span', { class: 'grow' }, h('strong', {}, m.categoria),
-              m.descripcion ? h('small', { class: 'muted' }, m.descripcion) : null),
+              m.descripcion || cuentaDe(m.cuenta_id) ? h('small', { class: 'muted' }, [m.descripcion, cuentaDe(m.cuenta_id) ? `${cuentaDe(m.cuenta_id).icono} ${cuentaDe(m.cuenta_id).nombre}` : null].filter(Boolean).join(' · ')) : null),
             money(m.tipo === 'ingreso' ? m.monto : -m.monto, m.tipo === 'ingreso' ? 'pos' : 'neg'))))),
       ))
       : emptyState('📭', `Nada en ${monthLabel(mesSel).toLowerCase()}`, 'Usa los botones de arriba para registrar ingresos o gastos.'),

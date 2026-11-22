@@ -1,9 +1,14 @@
 import { h, fill, money, progressBar, emptyState } from '../dom.js';
 import { currentMonth, monthLabel, fmtMoney, fmtPct } from '../../core/format.js';
+import { filaPresupuesto, registrarFijo, etiquetaFijo } from './plata.js';
 
-export async function renderResumen(cont, { service, irA }) {
+export async function renderResumen(cont, ctx) {
+  const { service, plata, irA } = ctx;
   const ym = currentMonth();
-  const { mes, deudas, metas } = await service.resumenGeneral(ym);
+  const [{ mes, deudas, metas }, pres, fijos, cuentas] = await Promise.all([
+    service.resumenGeneral(ym), plata.presupuestos(ym), plata.recurrentes(), plata.cuentas()]);
+  const alertas = pres.items.filter((p) => p.estado !== 'ok');
+  const fijosUrgentes = fijos.pendientes.filter((x) => x.activo && (x.estado.atrasado || x.estado.proximo));
   const { resumen, porCategoria } = mes;
   const maxCat = porCategoria[0]?.total || 1;
   const metasActivas = metas.items.filter((m) => !m.completada).slice(0, 3);
@@ -18,6 +23,17 @@ export async function renderResumen(cont, { service, irA }) {
         h('div', {}, h('small', {}, '↓ Gastos'), money(resumen.gastos, 'neg')),
       ),
     ),
+    cuentas.items.length ? h('button', { class: 'card banner', onclick: () => irA('cuentas') },
+      h('span', {}, '🏦'), h('span', { class: 'grow' }, h('strong', {}, `Tienes ${fmtMoney(cuentas.total)}`),
+        h('small', { class: 'muted' }, cuentas.items.filter((c) => c.activa).map((c) => `${c.icono} ${fmtMoney(c.saldo)}`).join('  '))), h('span', {}, '›')) : null,
+    fijosUrgentes.length ? h('section', { class: 'card' },
+      h('div', { class: 'card-head' }, h('h3', {}, '🔁 Pagos fijos por pagar'), h('button', { class: 'link', onclick: () => irA('fijos') }, 'Ver')),
+      h('ul', { class: 'list compact' }, fijosUrgentes.map((x) => h('li', { class: 'list-item static' },
+        h('span', { class: 'grow' }, h('strong', {}, x.nombre), h('small', { class: 'muted' }, fmtMoney(x.monto))), etiquetaFijo(x.estado),
+        h('button', { class: 'btn primary small', onclick: () => registrarFijo(plata, x, () => renderResumen(cont, ctx)) }, 'Pagar'))))) : null,
+    alertas.length ? h('section', { class: 'card' },
+      h('div', { class: 'card-head' }, h('h3', {}, '⚠️ Presupuestos en alerta'), h('button', { class: 'link', onclick: () => irA('presupuestos') }, 'Ver')),
+      alertas.map((p) => filaPresupuesto(p, () => irA('presupuestos')))) : null,
     h('div', { class: 'stats' },
       h('button', { class: 'stat stat-deuda', onclick: () => irA('deudas') },
         h('small', {}, 'Debes en total'), money(deudas.totalPendiente)),

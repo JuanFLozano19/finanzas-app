@@ -1,5 +1,6 @@
 import { h, fill, money, emptyState, formulario, toast, confirmar } from '../dom.js';
 import { today, fmtDate, fmtMoney } from '../../core/format.js';
+import { abrirReparto } from './plata.js';
 
 function formTarifa(vida, tarifa, recargar, despues) {
   formulario({
@@ -41,6 +42,7 @@ export async function renderTrabajo(cont, ctx) {
     if (!ok) return;
     const total = await vida.trabajo.cobrar(resumen.pendientes, today());
     toast(`💰 ${fmtMoney(total)} agregados a tus ingresos`); recargar();
+    await abrirReparto(ctx.plata, total, recargar);
   };
 
   fill(cont,
