@@ -8,6 +8,9 @@ import { FinanzasService } from './services/FinanzasService.js';
 import { crearServiciosVida } from './services/VidaServices.js';
 import { PlataService } from './services/PlataService.js';
 import { HorarioService, ApuntesService, GruposService, EstudioService } from './services/UniversidadExtra.js';
+import { BienestarService, AsistenteService } from './services/BienestarService.js';
+import { abrirAsistente } from './ui/asistente.js';
+import { renderRutinas, renderMetasVida, renderLectura, renderContactos, renderEnfoque, renderRevision } from './ui/views/bienestar.js';
 import { h, toast, tabs } from './ui/dom.js';
 import { renderAuth } from './ui/views/auth.js';
 import { renderHoy } from './ui/views/hoy.js';
@@ -41,23 +44,31 @@ const vida = crearServiciosVida(repos);
 const plata = new PlataService(repos);
 const uni = { horario: new HorarioService(repos), apuntes: new ApuntesService(repos, supabase), grupos: new GruposService(repos), estudio: new EstudioService(repos) };
 iniciarTemporizador(uni.estudio);
+const bienestar = new BienestarService(repos);
+const asistente = new AsistenteService({ service, vida, plata, bienestar, repos });
 seccionesAjustes.push(seccionReparto);
 
 // Para agregar un módulo nuevo basta con registrarlo aquí (abierto/cerrado).
 // tab = a qué botón de la barra inferior pertenece; grupo = sección del menú lateral.
 const RUTAS = {
   hoy: { titulo: 'Hoy', icono: '🏠', render: renderHoy, tab: 'hoy', grupo: 'Mi día' },
+  enfoque: { titulo: 'Modo enfoque', icono: '🎯', render: renderEnfoque, tab: 'hoy', grupo: 'Mi día', enMas: true, desc: 'Solo tus 3 cosas de hoy', menu: 'Enfoque' },
   agenda: { titulo: 'Agenda', icono: '🗓', render: renderAgenda, tab: 'agenda', grupo: 'Mi día' },
   tareas: { titulo: 'Tareas', icono: '✅', render: renderTareas, tab: 'tareas', grupo: 'Mi día' },
   habitos: { titulo: 'Hábitos', icono: '🌱', render: renderHabitos, tab: 'mas', grupo: 'Mi día', enMas: true, desc: 'Rachas y constancia' },
+  rutinas: { titulo: 'Rutinas', icono: '☀️', render: renderRutinas, tab: 'mas', grupo: 'Mi día', enMas: true, desc: 'Mañana y noche' },
   notas: { titulo: 'Diario y notas', icono: '📔', render: renderNotas, tab: 'mas', grupo: 'Mi día', enMas: true, desc: 'Ideas y cómo te fue' },
   universidad: { titulo: 'Universidad', icono: '🎓', render: renderUniversidad, tab: 'mas', grupo: 'Universidad', enMas: true, desc: 'Materias, horario, apuntes y estudio', sub: 'universidad', menu: 'Materias' },
-  horario: { titulo: 'Horario', icono: '🗓', render: renderHorario, tab: 'mas', grupo: 'Universidad', sub: 'universidad' },
+  horario: { titulo: 'Horario', icono: '🕘', render: renderHorario, tab: 'mas', grupo: 'Universidad', sub: 'universidad' },
   apuntes: { titulo: 'Apuntes', icono: '📎', render: renderApuntes, tab: 'mas', grupo: 'Universidad', sub: 'universidad' },
   grupos: { titulo: 'Trabajos en grupo', icono: '👥', render: renderGrupos, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Grupos' },
   estudio: { titulo: 'Estudio', icono: '⏱', render: renderEstudio, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Pomodoro' },
   trabajo: { titulo: 'Trabajo', icono: '💼', render: renderTrabajo, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Horas y pagos' },
   salud: { titulo: 'Salud', icono: '💪', render: renderSalud, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Ejercicio, sueño y agua' },
+  metasvida: { titulo: 'Metas de vida', icono: '⭐', render: renderMetasVida, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Sueños grandes, paso a paso' },
+  lectura: { titulo: 'Lectura y cursos', icono: '📖', render: renderLectura, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Libros y cursos', menu: 'Lectura' },
+  contactos: { titulo: 'Personas', icono: '🎂', render: renderContactos, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Cumpleaños y contacto' },
+  revision: { titulo: 'Revisión semanal', icono: '🧭', render: renderRevision, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Cierra la semana y planea', menu: 'Revisión' },
   finanzas: { titulo: 'Plata', icono: '💰', render: renderResumen, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas', menu: 'Resumen' },
   movimientos: { titulo: 'Movimientos', icono: '↕️', render: renderMovimientos, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
   cuentas: { titulo: 'Cuentas', icono: '🏦', render: renderCuentas, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
@@ -69,6 +80,7 @@ const RUTAS = {
   deseos: { titulo: 'Deseos', icono: '✨', render: renderDeseos, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
   estadisticas: { titulo: 'Estadísticas', icono: '📊', render: renderEstadisticas, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
 };
+
 RUTAS.ajustes = { titulo: 'Ajustes', icono: '⚙️', render: renderAjustes, tab: 'mas', grupo: 'Rumbo', enMas: true, desc: 'Tema, respaldo y cuenta' };
 RUTAS.mas = { titulo: 'Más', icono: '☰', render: crearVistaMas(RUTAS), tab: 'mas', oculta: true };
 
@@ -104,11 +116,14 @@ function construirShell() {
       h('div', { class: 'brand' }, h('img', { src: 'icons/icon.svg', alt: '' }), h('span', {}, 'Rumbo')),
       sideNav,
       h('div', { class: 'sidebar-foot' }, correo, h('button', { class: 'btn ghost small', onclick: salir }, 'Salir'))),
-    h('main', { class: 'main' }, h('header', { class: 'topbar' }, titulo, h('div', { class: 'top-actions' }, estadoRed)), subnav, contenido),
+    h('main', { class: 'main' }, h('header', { class: 'topbar' }, titulo, h('div', { class: 'top-actions' }, estadoRed,
+      h('button', { class: 'assistant-btn', 'aria-label': 'Asistente: cuéntale a Rumbo', title: 'Cuéntale a Rumbo (tecla /)', onclick: () => abrirAsistente(asistente, mostrar) }, '✨'))), subnav, contenido),
     bottomNav,
   );
   return { layout, titulo, subnav, contenido, correo, estadoRed };
 }
+
+const ctxBase = () => ({ service, vida, plata, ...uni, bienestar, asistente, irA, correo: sesion?.user.email, salir, abrirAsistente: () => abrirAsistente(asistente, mostrar) });
 
 async function mostrar() {
   if (!sesion) return;
@@ -124,7 +139,7 @@ async function mostrar() {
   shell.contenido.replaceChildren(h('div', { class: 'loader' }, h('span'), h('span'), h('span')));
   window.scrollTo({ top: 0 });
   try {
-    await r.render(shell.contenido, { service, vida, plata, ...uni, irA, correo: sesion.user.email, salir });
+    await r.render(shell.contenido, ctxBase());
   } catch (e) {
     console.error(e);
     const offline = !navigator.onLine;
@@ -181,6 +196,11 @@ function aplicarSesion(nueva) {
 }
 
 window.addEventListener('hashchange', mostrar);
+window.addEventListener('keydown', (e) => {
+  if (e.key === '/' && sesion && !document.querySelector('dialog[open]') && !/input|textarea|select/i.test(document.activeElement?.tagName)) {
+    e.preventDefault(); abrirAsistente(asistente, mostrar);
+  }
+});
 window.addEventListener('offline', () => { toast('Sin internet: tus cambios se guardan y se suben después', 'error'); pintarEstadoRed(); });
 window.addEventListener('online', sincronizarAhora);
 window.addEventListener('outbox', pintarEstadoRed);

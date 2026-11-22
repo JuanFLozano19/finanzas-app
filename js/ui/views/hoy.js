@@ -10,13 +10,24 @@ function saludo() {
 }
 
 export async function renderHoy(cont, ctx) {
-  const { service, vida, irA } = ctx;
+  const { service, vida, plata, bienestar, irA } = ctx;
   const recargar = () => renderHoy(cont, ctx);
   const hoy = today();
   const [agenda, tareas, habitos, mes, trabajo, uni] = await Promise.all([
     vida.agenda.rango(hoy, hoy), vida.tareas.listado(), vida.habitos.listado(hoy),
     service.movimientosDelMes(currentMonth()), vida.trabajo.listado(), vida.universidad.listado(),
   ]);
+  const [fijos, personas, prestamos, rutinas] = await Promise.all([plata.recurrentes(), bienestar.contactos(), plata.prestamos(), bienestar.rutinas()]);
+  const avisos = [
+    ...fijos.pendientes.filter((x) => x.activo && (x.estado.atrasado || x.estado.dias <= 2)).map((x) => ['🔁',
+      x.estado.atrasado ? `${x.nombre} venció hace ${-x.estado.dias} día${x.estado.dias === -1 ? '' : 's'}` : x.estado.dias === 0 ? `Hoy se paga ${x.nombre}` : `${x.nombre} se paga en ${x.estado.dias} día${x.estado.dias === 1 ? '' : 's'}`, 'fijos']),
+    ...personas.cumples.filter((c) => c.estado.cumple.dias <= 2).map((c) => ['🎂',
+      c.estado.cumple.dias === 0 ? `¡Hoy cumple años ${c.nombre}!` : `${c.nombre} cumple ${c.estado.cumple.dias === 1 ? 'mañana' : 'en 2 días'}`, 'contactos']),
+    ...prestamos.items.filter((p) => !p.estado.saldada && p.fecha_pago && p.fecha_pago <= hoy).map((p) => ['🤝', `${p.persona} te debía pagar el ${fmtDate(p.fecha_pago)}`, 'prestamos']),
+    ...([0, 1].includes(new Date().getDay()) ? [['🧭', new Date().getDay() === 0 ? 'Es domingo: buen momento para tu revisión semanal' : 'Revisa cómo te fue la semana pasada', 'revision']] : []),
+  ];
+  const rutina = new Date().getHours() < 15 ? rutinas.manana : rutinas.noche;
+  const rutinaPend = rutina.filter((i) => !i.hecho).length;
   const materias = tareas.materias;
   const habHoy = habitos.filter((x) => x.activo && x.tocaHoy);
   const hechos = habHoy.filter((x) => x.hechoHoy).length;
@@ -33,6 +44,17 @@ export async function renderHoy(cont, ctx) {
         h('div', {}, h('small', {}, 'Tareas para hoy'), h('b', {}, String(tareasHoy.length))),
         h('div', {}, h('small', {}, 'Hábitos'), h('b', {}, `${hechos}/${habHoy.length}`)),
       )),
+
+    h('button', { class: 'assistant-bar', onclick: ctx.abrirAsistente }, h('span', {}, '✨'), h('span', { class: 'muted' }, 'Cuéntale a Rumbo: "gasté 15 mil en almuerzo"…')),
+
+    avisos.length ? h('section', { class: 'card' }, h('h3', {}, 'Para tener en cuenta'),
+      h('ul', { class: 'list compact' }, avisos.map(([ic, txt, ruta]) => h('li', {}, h('button', { class: 'list-item', onclick: () => irA(ruta) },
+        h('span', {}, ic), h('span', { class: 'grow' }, txt), h('span', { class: 'muted' }, '›')))))) : null,
+
+    rutina.length && rutinaPend ? h('button', { class: 'card banner', onclick: () => irA('rutinas') },
+      h('span', {}, new Date().getHours() < 15 ? '☀️' : '🌙'),
+      h('span', { class: 'grow' }, h('strong', {}, `Rutina de la ${new Date().getHours() < 15 ? 'mañana' : 'noche'}: te faltan ${rutinaPend}`),
+        h('small', { class: 'muted' }, rutina.filter((i) => !i.hecho).map((i) => i.texto).slice(0, 3).join(' · '))), h('span', {}, '›')) : null,
 
     h('div', { class: 'stats three' },
       h('button', { class: 'stat', onclick: () => irA('finanzas') }, h('small', {}, 'Balance del mes'),
