@@ -1,65 +1,89 @@
-# Mi Vida 🧭
+# Rumbo 🧭
 
-App web instalable (PWA) para gestionar tu vida desde el celular y el PC: **agenda, tareas, hábitos, diario y notas, universidad, trabajo por horas, salud y finanzas**, con los datos sincronizados en Supabase.
+App web instalable (PWA) para gestionar tu vida desde el celular y el PC: **agenda, tareas, hábitos, rutinas, universidad, trabajo, salud, crecimiento personal y plata**. Los datos se sincronizan con Supabase, la app funciona sin internet y manda recordatorios con notificaciones push.
 
-## Funcionalidades
+## Módulos
 
-- **Hoy:** tu día de un vistazo: agenda, tareas para hoy y vencidas, hábitos para marcar, balance del mes, horas por cobrar y próximas evaluaciones.
+**Mi día**
+- **Hoy:** saludo, avisos (pagos que vencen, cumpleaños, préstamos), rutina pendiente, hábitos, agenda, tareas, evaluaciones próximas y lo que te deben del trabajo.
+- **Modo enfoque:** solo tus 3 tareas más importantes de hoy y lo siguiente en tu agenda.
 - **Agenda:** vista semanal con clases, turnos, citas y entregas. Los eventos pueden repetirse cada semana.
-- **Tareas:** prioridad, fecha límite y materia, agrupadas en vencidas, hoy, próximas y sin fecha.
-- **Hábitos:** días de la semana, rachas 🔥 y % de cumplimiento en 30 días.
+- **Tareas:** prioridad, fecha y materia, agrupadas en vencidas, hoy, próximas y sin fecha.
+- **Hábitos:** días de la semana, rachas y % de cumplimiento.
+- **Rutinas:** listas de mañana y de noche que se reinician cada día.
 - **Diario y notas:** notas con búsqueda y fijado, y diario con estado de ánimo.
-- **Universidad:** materias con evaluaciones ponderadas (escala 0–5), nota acumulada, nota necesaria para pasar con 3.0 y promedio por créditos.
-- **Trabajo:** registro de horas con tarifa. El botón "Ya me pagaron" crea el ingreso en Finanzas.
-- **Salud:** agua del día, sueño, peso y entrenamientos con resumen semanal.
 
-### Finanzas
+**Universidad**
+- **Materias:** evaluaciones ponderadas (escala 0–5), nota necesaria para pasar con 3.0, promedio por créditos y 🔮 simulador de notas.
+- **Horario:** las clases se agregan una vez y se repiten hasta el fin del semestre.
+- **Apuntes:** texto, enlaces y archivos (PDF, fotos) por materia, guardados en un Storage privado.
+- **Trabajos en grupo:** integrantes, partes con responsable y avance. Tus partes aparecen en Tareas.
+- **Pomodoro:** temporizador por materia que registra tus horas de estudio.
 
-- **Resumen:** balance del mes, total de deudas, ahorro en metas y gastos por categoría.
-- **Movimientos:** registro de ingresos y gastos por mes, con filtros y categorías.
-- **Deudas:** monto total, cuota, interés y fecha límite. Pagos con historial y cuotas restantes. Cada pago puede registrarse también como gasto.
-- **Metas:** lo que quieres comprar, con precio y fecha. Calcula cuánto ahorrar al mes, permite aportes y retiros y marcar la meta como comprada.
-- Inicio de sesión obligatorio. Cada usuario solo ve sus datos (Row Level Security).
-- Instalable en Android, iPhone y escritorio. Tema claro y oscuro automático.
+**Áreas**
+- **Trabajo:** horas con tarifa, "Ya me pagaron" crea el ingreso y propone repartirlo en tus metas.
+- **Salud:** agua, sueño, peso y entrenamientos con resumen semanal.
+
+**Crecimiento**
+- **Metas de vida** por pasos, **lectura y cursos**, **personas** (cumpleaños, WhatsApp y recordatorio de contacto) y **revisión semanal**.
+
+**Plata**
+- Resumen, movimientos, **cuentas y bolsillos**, **presupuestos** con alerta al 80%, **pagos fijos**, deudas, **préstamos** (lo que te deben), metas de ahorro, **lista de deseos** con historial de precios y regla de 30 días, **¿me lo puedo permitir?** y **estadísticas**.
+
+**Transversales**
+- ✨ **Asistente sin IA:** entiende frases como "gasté 15 mil en almuerzo", "trabajé 4 horas" o "parcial de bases el jueves a las 2". Se abre con el botón ✨ o con la tecla `/`.
+- 🔔 **Notificaciones push** cada 15 minutos (Edge Function + pg_cron), configurables por tipo.
+- 🔐 **Inicio con huella o rostro** (passkeys de Supabase, experimental).
+- 📡 **Sin internet:** lecturas desde caché y cola de cambios que se sube sola al volver la conexión.
+- 🎨 Tema claro/oscuro/automático y color de acento. 📤 Exportar todo a Excel.
 
 ## Arquitectura
 
 ```
 js/
-├── config.js              Configuración pública y catálogos
-├── core/                  Infraestructura (cliente Supabase, formato)
-├── domain/calculos.js     Reglas de negocio de finanzas (puras)
-├── domain/vida.js         Reglas de hábitos, agenda, tareas, notas, horas y salud (puras)
-├── data/repositories.js   Acceso a datos (patrón Repository)
-├── services/              Casos de uso (Auth, Finanzas y un servicio por módulo de vida)
-├── ui/dom.js              Primitivas de UI (nodos, formularios, diálogos)
-├── ui/components.js       Componentes compartidos (tarea, evento)
-├── ui/views/              Una pantalla por módulo
-└── app.js                 Composition root + enrutador por hash
+├── app.js                   Composition root, rutas y navegación
+├── config.js                Configuración pública y catálogos
+├── core/                    Cliente Supabase, formato de fechas/plata, tema
+├── domain/                  Reglas de negocio PURAS (sin red ni DOM), 100% probadas
+│   ├── calculos.js          Finanzas básicas
+│   ├── plata.js             Cuentas, presupuestos, fijos, deseos, reparto, permitirme
+│   ├── vida.js              Hábitos, agenda, tareas, universidad, horas, salud
+│   ├── bienestar.js         Cumpleaños, contactos, lectura, metas de vida
+│   └── asistente.js         Intérprete de frases en español colombiano
+├── data/
+│   ├── repositories.js      Patrón Repository sobre Supabase
+│   └── outbox.js            Cola sin conexión y fusión optimista
+├── services/                Casos de uso, uno por contexto (Finanzas, Plata, Vida,
+│                            Universidad, Bienestar, Asistente, Dispositivo)
+└── ui/
+    ├── dom.js               Primitivas (nodos seguros, formularios, diálogos)
+    ├── components.js        Componentes compartidos
+    ├── charts.js            Gráficas HTML accesibles (leyenda, tooltip, tabla)
+    └── views/               Una pantalla por módulo
+supabase/functions/notificar Edge Function de recordatorios push
 ```
 
-Principios SOLID aplicados:
-
-| Principio | Dónde |
+| Principio SOLID | Dónde se aplica |
 |---|---|
-| **S**: Responsabilidad única | Cada capa tiene un solo motivo de cambio: cálculo (`domain`), persistencia (`data`), orquestación (`services`) y presentación (`ui`). |
-| **O**: Abierto/cerrado | Un módulo nuevo se agrega registrándolo en el mapa `RUTAS` de `app.js`. `CrudService` y `BaseRepository` se extienden sin modificarse. |
-| **L**: Sustitución de Liskov | `MovimientosRepository` se usa donde se espera un `BaseRepository`. |
-| **I**: Segregación de interfaces | Las vistas reciben solo `{ service, irA }`, y la autenticación está separada en `AuthService`. |
-| **D**: Inversión de dependencias | `FinanzasService` recibe los repositorios inyectados y no conoce Supabase. Solo `app.js` arma las dependencias. |
+| **S**: Responsabilidad única | Dominio (reglas), datos (persistencia), servicios (casos de uso) y vistas (presentación) cambian por motivos distintos. Cada servicio cubre un solo contexto. |
+| **O**: Abierto/cerrado | Un módulo nuevo se agrega registrándolo en `RUTAS`. Ajustes recibe secciones con `seccionesAjustes.push(...)` sin tocar su código. |
+| **L**: Sustitución de Liskov | `MovimientosRepository` funciona donde se espera un `BaseRepository`, y `CrudService` se extiende sin romper el contrato. |
+| **I**: Segregación de interfaces | Las vistas reciben solo los servicios que usan del contexto. La autenticación, las notificaciones y las passkeys van en servicios separados. |
+| **D**: Inversión de dependencias | Los servicios reciben repositorios inyectados y no conocen Supabase. Solo `app.js` arma las dependencias. |
 
-## Base de datos (Supabase / PostgreSQL)
+## Seguridad
 
-Tablas: `movimientos`, `deudas`, `pagos_deuda`, `metas`, `aportes_meta`, `tareas`, `habitos`, `registros_habito`, `eventos`, `notas`, `materias`, `evaluaciones`, `horas_trabajo`, `ajustes`, `entrenamientos` y `registros_salud`. Todas tienen:
-- `user_id` por defecto `auth.uid()`, con políticas RLS de select, insert, update y delete limitadas al dueño.
-- Restricciones `CHECK` (montos positivos, tipos válidos) e índices por usuario y por llave foránea.
-- Políticas restrictivas que impiden referenciar registros de otro usuario (pagos, aportes, evaluaciones, hábitos, materias y movimientos).
+- **RLS** en las 34 tablas: cada usuario solo lee y escribe lo suyo. Además hay políticas *restrictivas* que impiden referenciar registros de otro usuario.
+- Los secretos (VAPID y cron) están en **Supabase Vault**. Solo la Edge Function los lee, mediante una función `security definer` limitada a `service_role`.
+- Archivos en un bucket **privado** con carpeta por usuario y enlaces firmados de 2 minutos.
+- El texto se inserta como `textNode`, sin `innerHTML`, para evitar XSS.
 
 ## Calidad
 
-- 18 pruebas unitarias del dominio: `npm test` (Node 20+ con `node:test`).
-- El texto del usuario se inserta siempre como `textNode`, sin `innerHTML`, para evitar XSS.
-- Accesibilidad: elementos semánticos, `aria-*` en barras de progreso, foco visible y soporte de `prefers-reduced-motion`.
+- **43 pruebas unitarias** del dominio, la cola sin conexión y el asistente: `npm test`.
+- Pruebas visuales de humo (Playwright) en las 30 pantallas, en celular y escritorio.
+- Asesores de Supabase revisados (seguridad y rendimiento).
+- Accesibilidad: roles ARIA, foco visible, gráficas con tabla de datos y soporte de `prefers-reduced-motion`.
 
 ## Correr localmente
 
