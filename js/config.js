@@ -11,3 +11,6 @@ export const CATEGORIAS = {
 };
 
 export const ICONOS_META = ['🎯', '💻', '📱', '🎮', '🏍️', '🚗', '✈️', '🏠', '🎧', '👟', '📚', '💍', '🎁', '💰'];
+
+// Clave pública VAPID para notificaciones push (la privada está en el Vault de Supabase).
+export const VAPID_PUBLIC = 'BGijW804IPSA87yqZj8l-MqT_AhLpmTF_EAHi5oTKvhcyfD64PeINHycS71yC0xnBjM4I84vZTddhh_5DGD6JdI';

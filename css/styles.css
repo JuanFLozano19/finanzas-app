@@ -577,3 +577,4 @@ input[type=range] { width: 100%; accent-color: var(--brand); }
 .focus-list li { display: flex; align-items: center; gap: 14px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px 18px; font-size: 1.1rem; font-weight: 700; box-shadow: var(--shadow); }
 .focus-list .check-circle { width: 34px; height: 34px; }
 .focus-next { display: flex; flex-direction: column; gap: 2px; padding: 12px 18px; border-radius: 14px; background: var(--surface-2); }
+.notif-prefs { display: flex; flex-direction: column; gap: 10px; }

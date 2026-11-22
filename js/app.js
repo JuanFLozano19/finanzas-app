@@ -10,6 +10,8 @@ import { PlataService } from './services/PlataService.js';
 import { HorarioService, ApuntesService, GruposService, EstudioService } from './services/UniversidadExtra.js';
 import { BienestarService, AsistenteService } from './services/BienestarService.js';
 import { abrirAsistente } from './ui/asistente.js';
+import { NotificacionesService, PasskeyService } from './services/DispositivoService.js';
+import { seccionNotificaciones, seccionPasskeys } from './ui/views/dispositivo.js';
 import { renderRutinas, renderMetasVida, renderLectura, renderContactos, renderEnfoque, renderRevision } from './ui/views/bienestar.js';
 import { h, toast, tabs } from './ui/dom.js';
 import { renderAuth } from './ui/views/auth.js';
@@ -46,6 +48,9 @@ const uni = { horario: new HorarioService(repos), apuntes: new ApuntesService(re
 iniciarTemporizador(uni.estudio);
 const bienestar = new BienestarService(repos);
 const asistente = new AsistenteService({ service, vida, plata, bienestar, repos });
+const notificaciones = new NotificacionesService(repos, supabase);
+const passkeys = new PasskeyService(supabase);
+seccionesAjustes.unshift(seccionNotificaciones, seccionPasskeys);
 seccionesAjustes.push(seccionReparto);
 
 // Para agregar un módulo nuevo basta con registrarlo aquí (abierto/cerrado).
@@ -123,7 +128,7 @@ function construirShell() {
   return { layout, titulo, subnav, contenido, correo, estadoRed };
 }
 
-const ctxBase = () => ({ service, vida, plata, ...uni, bienestar, asistente, irA, correo: sesion?.user.email, salir, abrirAsistente: () => abrirAsistente(asistente, mostrar) });
+const ctxBase = () => ({ service, vida, plata, ...uni, bienestar, asistente, notificaciones, passkeys, irA, correo: sesion?.user.email, salir, abrirAsistente: () => abrirAsistente(asistente, mostrar) });
 
 async function mostrar() {
   if (!sesion) return;
@@ -186,7 +191,7 @@ function aplicarSesion(nueva) {
   const cambioUsuario = nueva?.user?.id !== sesion?.user?.id;
   const yaEnLogin = !sesion && !nueva && root.querySelector('.auth-wrap');
   sesion = nueva;
-  if (!sesion) { if (!yaEnLogin) { shell = null; renderAuth(root, auth); } return; }
+  if (!sesion) { if (!yaEnLogin) { shell = null; renderAuth(root, auth, passkeys); } return; }
   if (!shell || cambioUsuario) {
     shell = construirShell();
     root.replaceChildren(shell.layout);

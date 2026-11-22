@@ -1,6 +1,6 @@
 import { h } from '../dom.js';
 
-export function renderAuth(root, authService) {
+export function renderAuth(root, authService, passkeys) {
   let modo = 'login';
   const error = h('p', { class: 'form-error', hidden: true });
   const info = h('p', { class: 'form-info', hidden: true });
@@ -27,7 +27,12 @@ export function renderAuth(root, authService) {
       h('input', { name: 'email', type: 'email', required: true, autocomplete: 'email' })),
     h('label', { class: 'field' }, h('span', { class: 'label' }, 'Contraseña'), pass,
       h('small', { class: 'hint' }, 'Mínimo 6 caracteres.')),
-    error, info, btn, cambio,
+    error, info, btn,
+    passkeys?.soportado() ? h('button', { class: 'btn ghost block', type: 'button', onclick: async (e) => {
+      const b = e.currentTarget; b.disabled = true; error.hidden = true;
+      try { await passkeys.entrar(); } catch (err) { error.textContent = err.message; error.hidden = false; } finally { b.disabled = false; }
+    } }, '🔐 Entrar con huella o rostro') : null,
+    cambio,
   );
 
   form.addEventListener('submit', async (e) => {
