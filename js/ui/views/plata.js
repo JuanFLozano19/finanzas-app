@@ -224,7 +224,7 @@ export async function seccionReparto({ plata }, _aj, recargar) {
   const total = reparto.reduce((a, r) => a + Number(r.porcentaje), 0);
   return h('section', { class: 'card' },
     h('h3', {}, '💸 Repartir cuando te pagan'),
-    h('p', { class: 'muted' }, 'Cuando registras un pago del trabajo, Rumbo te propone separar estos porcentajes para tus metas.'),
+    h('p', { class: 'muted' }, 'Cuando registras un ingreso, Rumbo te propone separar estos porcentajes para tus metas.'),
     metas.length ? h('ul', { class: 'list compact' }, metas.map((m) => h('li', { class: 'list-item static' },
       h('span', { class: 'grow' }, `${m.icono} ${m.nombre}`), h('b', {}, `${pct(m.id)}%`)))) : h('p', { class: 'muted' }, 'Primero crea metas de ahorro en Plata → Metas.'),
     metas.length ? h('div', { class: 'row-between' }, h('small', { class: 'muted' }, `Total: ${total}% · libre ${100 - total}%`),

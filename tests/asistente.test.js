@@ -41,12 +41,20 @@ test('ingresos', () => {
 });
 
 test('horas, sueño, agua, entreno y lectura', () => {
-  assert.deepEqual(interpretar('trabajé 4.5 horas', HOY), { tipo: 'horas', horas: 4.5, fecha: HOY });
   assert.deepEqual(interpretar('dormí 7 horas', HOY), { tipo: 'sueno', horas: 7, fecha: HOY });
   assert.deepEqual(interpretar('tomé 2 vasos de agua', HOY), { tipo: 'agua', vasos: 2 });
   assert.deepEqual(interpretar('entrené 45 min de gimnasio', HOY), { tipo: 'entreno', minutos: 45, actividad: 'Gimnasio', fecha: HOY });
   assert.equal(interpretar('corrí 1 hora', HOY).minutos, 60);
   assert.deepEqual(interpretar('leí 20 páginas', HOY), { tipo: 'lectura', cantidad: 20 });
+});
+
+test('turnos de trabajo', () => {
+  assert.deepEqual(interpretar('turno mañana de 8 a 2', HOY), { tipo: 'turno', titulo: 'Turno', fecha: '2026-11-22', hora_inicio: '08:00', hora_fin: '14:00' });
+  const r = interpretar('tengo turno de grabación el jueves de 2 a 6 pm', HOY);
+  assert.deepEqual([r.titulo, r.fecha, r.hora_inicio, r.hora_fin], ['Turno de grabación', '2026-11-26', '14:00', '18:00']);
+  const n = interpretar('turno de noche hoy de 10 pm a 6 am', HOY);
+  assert.deepEqual([n.hora_inicio, n.hora_fin], ['22:00', '06:00']);
+  assert.equal(interpretar('turno hoy 14:30 a 18:00', HOY).hora_inicio, '14:30');
 });
 
 test('préstamos', () => {

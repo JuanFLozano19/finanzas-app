@@ -1,11 +1,12 @@
 import { h, fill, money, emptyState, formulario, toast } from '../dom.js';
 import { currentMonth, monthLabel, fmtDate, today } from '../../core/format.js';
 import { CATEGORIAS } from '../../config.js';
+import { abrirReparto } from './plata.js';
 
 let mesSel = currentMonth();
 let filtro = 'todos';
 
-function abrirForm(service, tipo, mov, recargar, cuentas = []) {
+function abrirForm(service, tipo, mov, recargar, cuentas = [], plata = null) {
   const esIngreso = tipo === 'ingreso';
   formulario({
     titulo: `${mov ? 'Editar' : 'Nuevo'} ${esIngreso ? 'ingreso' : 'gasto'}`,
@@ -22,6 +23,7 @@ function abrirForm(service, tipo, mov, recargar, cuentas = []) {
       await service.guardarMovimiento(mov?.id, { ...datos, tipo });
       toast(mov ? 'Cambios guardados' : `${esIngreso ? 'Ingreso' : 'Gasto'} registrado`);
       recargar();
+      if (!mov && esIngreso && plata) abrirReparto(plata, datos.monto, recargar).catch(() => {});
     },
     onEliminar: mov ? async () => { await service.eliminarMovimiento(mov.id); toast('Eliminado'); recargar(); } : null,
   });
@@ -56,7 +58,7 @@ export async function renderMovimientos(cont, ctx) {
       h('div', { class: 'stat' }, h('small', {}, 'Balance'), money(resumen.balance, resumen.balance < 0 ? 'neg' : '')),
     ),
     h('div', { class: 'action-row' },
-      h('button', { class: 'btn income', onclick: () => abrirForm(service, 'ingreso', null, recargar, cuentas) }, '+ Ingreso'),
+      h('button', { class: 'btn income', onclick: () => abrirForm(service, 'ingreso', null, recargar, cuentas, plata) }, '+ Ingreso'),
       h('button', { class: 'btn expense', onclick: () => abrirForm(service, 'gasto', null, recargar, cuentas) }, '+ Gasto'),
     ),
     visibles.length

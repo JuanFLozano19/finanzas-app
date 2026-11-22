@@ -5,7 +5,7 @@ import { fmtDate } from '../../core/format.js';
 
 export async function seccionNotificaciones({ notificaciones: svc }, aj, recargar) {
   const est = await svc.estado();
-  const prefs = { eventos: true, tareas: true, evaluaciones: true, habitos: true, cumpleanos: true, pagos: true, ...(aj.notificaciones || {}) };
+  const prefs = { turnos: true, eventos: true, tareas: true, evaluaciones: true, habitos: true, cumpleanos: true, pagos: true, ...(aj.notificaciones || {}) };
   const accion = (fn, ok) => async (e) => {
     const b = e.currentTarget; b.disabled = true;
     try { const r = await fn(); if (ok) toast(typeof ok === 'function' ? ok(r) : ok); recargar(); }

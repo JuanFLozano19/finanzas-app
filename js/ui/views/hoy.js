@@ -1,5 +1,5 @@
 import { h, fill, money, emptyState, checkCircle } from '../dom.js';
-import { today, addDays, currentMonth, fmtDayLong, fmtDate, fmtMoney } from '../../core/format.js';
+import { today, addDays, currentMonth, fmtDayLong, fmtDate, fmtTime } from '../../core/format.js';
 import { tareaItem, eventoItem, formTarea, formEvento } from '../components.js';
 
 function saludo() {
@@ -15,7 +15,7 @@ export async function renderHoy(cont, ctx) {
   const hoy = today();
   const [agenda, tareas, habitos, mes, trabajo, uni] = await Promise.all([
     vida.agenda.rango(hoy, hoy), vida.tareas.listado(), vida.habitos.listado(hoy),
-    service.movimientosDelMes(currentMonth()), vida.trabajo.listado(), vida.universidad.listado(),
+    service.movimientosDelMes(currentMonth()), vida.trabajo.datos(), vida.universidad.listado(),
   ]);
   const [fijos, personas, prestamos, rutinas] = await Promise.all([plata.recurrentes(), bienestar.contactos(), plata.prestamos(), bienestar.rutinas()]);
   const avisos = [
@@ -59,7 +59,8 @@ export async function renderHoy(cont, ctx) {
     h('div', { class: 'stats three' },
       h('button', { class: 'stat', onclick: () => irA('finanzas') }, h('small', {}, 'Balance del mes'),
         money(mes.resumen.balance, mes.resumen.balance < 0 ? 'neg' : 'pos')),
-      h('button', { class: 'stat', onclick: () => irA('trabajo') }, h('small', {}, 'Por cobrar'), money(trabajo.resumen.montoPendiente)),
+      h('button', { class: 'stat', onclick: () => irA('trabajo') }, h('small', {}, 'Próximo turno'),
+        h('b', {}, trabajo.proximo ? (trabajo.proximo.enCurso ? 'Ahora' : `${trabajo.proximo.fecha === hoy ? 'Hoy' : trabajo.proximo.fecha === addDays(hoy, 1) ? 'Mañana' : fmtDate(trabajo.proximo.fecha).split(' de ').slice(0, 2).join(' ')} ${fmtTime(trabajo.proximo.evento.hora_inicio)}`) : '—')),
       h('button', { class: 'stat', onclick: () => irA('universidad') }, h('small', {}, 'Promedio'),
         h('span', { class: 'money' }, uni.promedio != null ? uni.promedio.toFixed(2) : '—')),
     ),
@@ -93,9 +94,10 @@ export async function renderHoy(cont, ctx) {
         h('span', { class: 'grow' }, h('strong', {}, e.nombre), h('small', { class: 'muted' }, `${e.materia?.nombre || ''} · ${e.porcentaje}%`)),
         h('span', { class: 'pill' }, fmtDate(e.fecha)))))) : null,
 
-    trabajo.resumen.montoPendiente > 0 ? h('button', { class: 'card banner', onclick: () => irA('trabajo') },
-      h('span', {}, '💼'), h('span', { class: 'grow' }, h('strong', {}, `Tienes ${trabajo.resumen.horasPendientes} h sin cobrar`),
-        h('small', { class: 'muted' }, `Equivalen a ${fmtMoney(trabajo.resumen.montoPendiente)}`)), h('span', {}, '›')) : null,
+    trabajo.proximo && (trabajo.proximo.enCurso || trabajo.proximo.fecha === hoy) ? h('button', { class: 'card banner shift-banner', onclick: () => irA('trabajo') },
+      h('span', {}, '💼'), h('span', { class: 'grow' },
+        h('strong', {}, trabajo.proximo.enCurso ? `Estás en turno hasta las ${fmtTime(trabajo.proximo.evento.hora_fin)}` : `Hoy tienes turno de ${fmtTime(trabajo.proximo.evento.hora_inicio)} a ${fmtTime(trabajo.proximo.evento.hora_fin)}`),
+        h('small', { class: 'muted' }, trabajo.proximo.evento.titulo)), h('span', {}, '›')) : null,
   );
 }
 

@@ -68,7 +68,7 @@ const RUTAS = {
   apuntes: { titulo: 'Apuntes', icono: '📎', render: renderApuntes, tab: 'mas', grupo: 'Universidad', sub: 'universidad' },
   grupos: { titulo: 'Trabajos en grupo', icono: '👥', render: renderGrupos, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Grupos' },
   estudio: { titulo: 'Estudio', icono: '⏱', render: renderEstudio, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Pomodoro' },
-  trabajo: { titulo: 'Trabajo', icono: '💼', render: renderTrabajo, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Horas y pagos' },
+  trabajo: { titulo: 'Turnos de trabajo', icono: '💼', render: renderTrabajo, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Tus turnos y horarios', menu: 'Turnos' },
   salud: { titulo: 'Salud', icono: '💪', render: renderSalud, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Ejercicio, sueño y agua' },
   metasvida: { titulo: 'Metas de vida', icono: '⭐', render: renderMetasVida, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Sueños grandes, paso a paso' },
   lectura: { titulo: 'Lectura y cursos', icono: '📖', render: renderLectura, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Libros y cursos', menu: 'Lectura' },

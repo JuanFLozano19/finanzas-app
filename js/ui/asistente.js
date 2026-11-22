@@ -3,7 +3,7 @@ import { h, dialogo, toast } from './dom.js';
 import { interpretar } from '../domain/asistente.js';
 import { today, fmtDate, fmtMoney } from '../core/format.js';
 
-const EJEMPLOS = ['gasté 15 mil en almuerzo', 'me pagaron 350 mil', 'trabajé 4 horas', 'parcial de bases el jueves a las 2',
+const EJEMPLOS = ['gasté 15 mil en almuerzo', 'me pagaron 350 mil', 'turno mañana de 8 a 2', 'parcial de bases el jueves a las 2',
   'tengo que entregar el taller mañana', 'tomé 2 vasos de agua', 'dormí 7 horas', 'entrené 45 min de gimnasio', 'leí 20 páginas',
   'le presté 50 mil a Carlos', 'nota: idea para el proyecto'];
 
@@ -12,7 +12,7 @@ export function describir(a) {
   switch (a.tipo) {
     case 'gasto': return ['💸 Gasto', `${fmtMoney(a.monto)} · ${a.categoria}${a.descripcion ? ` · ${a.descripcion}` : ''} · ${f(a.fecha)}`];
     case 'ingreso': return ['💰 Ingreso', `${fmtMoney(a.monto)}${a.descripcion ? ` · ${a.descripcion}` : ''} · ${f(a.fecha)}`];
-    case 'horas': return ['💼 Horas de trabajo', `${a.horas} h · ${f(a.fecha)}`];
+    case 'turno': return ['💼 Turno de trabajo', `${a.titulo} · ${f(a.fecha)} · ${a.hora_inicio} a ${a.hora_fin}`];
     case 'sueno': return ['😴 Sueño', `${a.horas} h dormidas · ${f(a.fecha)}`];
     case 'agua': return ['💧 Agua', `+${a.vasos} vaso${a.vasos === 1 ? '' : 's'} hoy`];
     case 'entreno': return ['💪 Entrenamiento', `${a.actividad} · ${a.minutos} min · ${f(a.fecha)}`];

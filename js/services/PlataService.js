@@ -2,6 +2,7 @@
 // reparto de ingresos, "¿me lo puedo permitir?" y estadísticas.
 import { today, currentMonth, monthRange, addDays, startOfWeek } from '../core/format.js';
 import { sum, gastosPorCategoria, estadoDeuda } from '../domain/calculos.js';
+import { horasTurnos } from '../domain/vida.js';
 import {
   saldoCuenta, estadoPresupuestos, estadoRecurrente, estadoDeseo, repartir,
   serieMensual, puedoPermitirme, ahorroPromedio,
@@ -124,7 +125,7 @@ export class PlataService {
     const serie = serieMensual(movs, ym, 4);
     const ahorro = ahorroPromedio(serie);
     const metaPrincipal = metas.find((m) => !m.completada) || null;
-    const tarifaHora = aj?.tarifa_hora ? Number(aj.tarifa_hora) : null;
+    const tarifaHora = null; // Rumbo ya no maneja tarifas: solo turnos
     return {
       ...puedoPermitirme({ precio, balanceMes: serie[serie.length - 1].balance, ahorroMensual: ahorro, metaPrincipal, tarifaHora }),
       balanceMes: serie[serie.length - 1].balance, ahorroMensual: ahorro, metaPrincipal, tarifaHora,
@@ -140,7 +141,7 @@ export class PlataService {
     const desdeSemanas = addDays(lunes, -7 * 7);
     const [movs, horas, diario, salud] = await Promise.all([
       this.r.movimientos.list({ orderBy: 'fecha', filters: [['fecha', 'gte', desde]] }),
-      this.r.horas.list({ orderBy: 'fecha', filters: [['fecha', 'gte', desdeSemanas]] }),
+      this.r.eventos.list({ orderBy: 'fecha', filters: [['tipo', 'eq', 'trabajo'], ['fecha', 'lte', addDays(lunes, 6)]] }),
       this.r.notas.list({ orderBy: 'fecha', filters: [['tipo', 'eq', 'diario'], ['fecha', 'gte', addDays(hoy, -60)]] }),
       this.r.salud.list({ orderBy: 'fecha', filters: [['fecha', 'gte', addDays(hoy, -60)]] }),
     ]);
@@ -149,7 +150,7 @@ export class PlataService {
     const semanas = Array.from({ length: 8 }, (_, i) => {
       const ini = addDays(desdeSemanas, i * 7);
       const fin = addDays(ini, 7);
-      return { ini, horas: sum(horas.filter((x) => x.fecha >= ini && x.fecha < fin), (x) => x.horas) };
+      return { ini, horas: horasTurnos(horas, ini, addDays(fin, -1)) };
     });
     // Ánimo según horas dormidas: cruza diario y salud por fecha.
     const sueno = new Map(salud.filter((s) => s.horas_sueno != null).map((s) => [s.fecha, Number(s.horas_sueno)]));

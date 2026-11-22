@@ -21,14 +21,14 @@ App web instalable (PWA) para gestionar tu vida desde el celular y el PC: **agen
 - **Pomodoro:** temporizador por materia que registra tus horas de estudio.
 
 **Áreas**
-- **Trabajo:** horas con tarifa, "Ya me pagaron" crea el ingreso y propone repartirlo en tus metas.
+- **Turnos de trabajo:** tipo de turno, descripción, hora de entrada y salida (incluye turnos de noche), turnos fijos semanales y horas por semana y mes. Avisa antes de cada turno (15 min a 2 h) y la noche anterior.
 - **Salud:** agua, sueño, peso y entrenamientos con resumen semanal.
 
 **Crecimiento**
 - **Metas de vida** por pasos, **lectura y cursos**, **personas** (cumpleaños, WhatsApp y recordatorio de contacto) y **revisión semanal**.
 
 **Plata**
-- Resumen, movimientos, **cuentas y bolsillos**, **presupuestos** con alerta al 80%, **pagos fijos**, deudas, **préstamos** (lo que te deben), metas de ahorro, **lista de deseos** con historial de precios y regla de 30 días, **¿me lo puedo permitir?** y **estadísticas**.
+- Resumen, movimientos (al registrar un ingreso propone repartirlo en tus metas), **cuentas y bolsillos**, **presupuestos** con alerta al 80%, **pagos fijos**, deudas, **préstamos** (lo que te deben), metas de ahorro, **lista de deseos** con historial de precios y regla de 30 días, **¿me lo puedo permitir?** y **estadísticas**.
 
 **Transversales**
 - ✨ **Asistente sin IA:** entiende frases como "gasté 15 mil en almuerzo", "trabajé 4 horas" o "parcial de bases el jueves a las 2". Se abre con el botón ✨ o con la tecla `/`.
@@ -36,6 +36,10 @@ App web instalable (PWA) para gestionar tu vida desde el celular y el PC: **agen
 - 🔐 **Inicio con huella o rostro** (passkeys de Supabase, experimental).
 - 📡 **Sin internet:** lecturas desde caché y cola de cambios que se sube sola al volver la conexión.
 - 🎨 Tema claro/oscuro/automático y color de acento. 📤 Exportar todo a Excel.
+
+## Diseño
+
+Paleta "brújula de noche": azul noche `#13203D` para lo importante, cobalto `#2F55D4` como color principal (cambiable en Ajustes), naranja aguja `#FF7A1A` reservado para lo urgente (hoy, turno en curso), niebla `#EDF1F7` de fondo. Tipografías: Bricolage Grotesque para títulos y DM Sans para texto.
 
 ## Arquitectura
 
@@ -80,7 +84,7 @@ supabase/functions/notificar Edge Function de recordatorios push
 
 ## Calidad
 
-- **43 pruebas unitarias** del dominio, la cola sin conexión y el asistente: `npm test`.
+- **47 pruebas unitarias** del dominio, la cola sin conexión y el asistente: `npm test`.
 - Pruebas visuales de humo (Playwright) en las 30 pantallas, en celular y escritorio.
 - Asesores de Supabase revisados (seguridad y rendimiento).
 - Accesibilidad: roles ARIA, foco visible, gráficas con tabla de datos y soporte de `prefers-reduced-motion`.

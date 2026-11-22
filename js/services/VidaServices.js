@@ -1,9 +1,9 @@
 // Servicios de los módulos de vida. Cada clase tiene una sola responsabilidad
 // y recibe sus repositorios por constructor (inyección de dependencias).
-import { today, addDays } from '../core/format.js';
+import { today, addDays, startOfWeek, monthRange } from '../core/format.js';
 import {
   racha, cumplimiento, tocaEnFecha, eventosDelDia, agruparTareas,
-  estadoMateria, promedioSemestre, resumenHoras, resumenSemanaSalud,
+  estadoMateria, promedioSemestre, resumenSemanaSalud, instancias, horasTurnos, proximoTurno,
 } from '../domain/vida.js';
 
 /** CRUD genérico reutilizable para servicios simples. */
@@ -93,24 +93,28 @@ export class UniversidadService {
   eliminarEvaluacion(id) { return this.evaluaciones.remove(id); }
 }
 
-export class TrabajoService extends CrudService {
-  constructor(repos) { super(repos.horas); this.ajustes = repos.ajustes; this.movimientos = repos.movimientos; }
-  async listado() {
-    const [registros, ajustes] = await Promise.all([this.repo.list({ orderBy: 'fecha' }), this.ajustes.findOne([], 'updated_at')]);
-    return { registros, tarifa: ajustes?.tarifa_hora ? Number(ajustes.tarifa_hora) : null, resumen: resumenHoras(registros) };
+/** Turnos de trabajo: se guardan como eventos de tipo "trabajo" (salen también en la Agenda). */
+export class TurnosService {
+  constructor(repos) { this.repo = repos.eventos; }
+  async datos(ahora = new Date()) {
+    const hoy = today();
+    const turnos = await this.repo.list({ orderBy: 'fecha', ascending: true, filters: [['tipo', 'eq', 'trabajo']] });
+    const lunes = startOfWeek(hoy);
+    const [m0, m1] = monthRange(hoy.slice(0, 7));
+    const semana = instancias(turnos, lunes, addDays(lunes, 6));
+    return {
+      turnos,
+      proximo: proximoTurno(turnos, ahora),
+      proximos: instancias(turnos, hoy, addDays(hoy, 13)),
+      horasSemana: horasTurnos(turnos, lunes, addDays(lunes, 6)),
+      horasMes: horasTurnos(turnos, m0, addDays(m1, -1)),
+      turnosSemana: semana.length,
+      fijos: turnos.filter((t) => t.semanal && (!t.fecha_fin || t.fecha_fin >= hoy)),
+      tipos: [...new Set(turnos.map((t) => t.titulo))],
+    };
   }
-  guardarTarifa(tarifa_hora) { return this.ajustes.upsert({ tarifa_hora }, 'user_id'); }
-
-  /** Pasa las horas pendientes a un ingreso y las marca como pagadas. */
-  async cobrar(pendientes, fecha) {
-    const total = Math.round(pendientes.reduce((a, r) => a + Number(r.horas) * Number(r.tarifa), 0));
-    const horas = pendientes.reduce((a, r) => a + Number(r.horas), 0);
-    const mov = await this.movimientos.create({
-      tipo: 'ingreso', monto: total, fecha, categoria: 'Trabajo por horas', descripcion: `Pago de ${horas} h trabajadas`,
-    });
-    await Promise.all(pendientes.map((r) => this.repo.update(r.id, { pagado: true, movimiento_id: mov.id })));
-    return total;
-  }
+  guardar(id, d) { const datos = { ...d, tipo: 'trabajo' }; return id ? this.repo.update(id, datos) : this.repo.create(datos); }
+  eliminar(id) { return this.repo.remove(id); }
 }
 
 export class SaludService {
@@ -137,7 +141,7 @@ export const crearServiciosVida = (repos) => ({
   agenda: new AgendaService(repos),
   notas: new NotasService(repos),
   universidad: new UniversidadService(repos),
-  trabajo: new TrabajoService(repos),
+  trabajo: new TurnosService(repos),
   salud: new SaludService(repos),
   ajustes: new AjustesService(repos),
   exportar: new ExportService(repos),

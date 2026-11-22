@@ -10,7 +10,7 @@ export async function renderAjustes(cont, ctx) {
   const recargar = () => renderAjustes(cont, ctx);
   const aj = await vida.ajustes.obtener();
   const tema = aj.tema || 'auto';
-  const acento = aj.acento || '#0f8f78';
+  const acento = aj.acento || '#2f55d4';
 
   const guardar = async (cambios) => {
     aplicarTema({ tema, acento, ...cambios });

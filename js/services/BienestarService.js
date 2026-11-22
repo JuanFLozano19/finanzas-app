@@ -3,7 +3,7 @@
 import { today, addDays, startOfWeek } from '../core/format.js';
 import { sum } from '../domain/calculos.js';
 import { estadoContacto, progresoLectura, progresoMetaVida } from '../domain/bienestar.js';
-import { eventosDelDia } from '../domain/vida.js';
+import { eventosDelDia, horasTurnos } from '../domain/vida.js';
 
 export class BienestarService {
   constructor(repos) { this.r = repos; }
@@ -84,7 +84,7 @@ export class BienestarService {
       this.r.registrosHabito.list({ orderBy: 'fecha', filters: [['fecha', 'gte', lunes], ['fecha', 'lte', domingo]] }),
       this.r.habitos.list(),
       this.r.movimientos.list({ orderBy: 'fecha', filters: [['fecha', 'gte', lunes], ['fecha', 'lte', domingo]] }),
-      this.r.horas.list({ orderBy: 'fecha', filters: [['fecha', 'gte', lunes], ['fecha', 'lte', domingo]] }),
+      this.r.eventos.list({ orderBy: 'fecha', filters: [['tipo', 'eq', 'trabajo'], ['fecha', 'lte', domingo]] }),
       this.r.sesiones.list({ orderBy: 'fecha', filters: [['fecha', 'gte', lunes], ['fecha', 'lte', domingo]] }),
       this.r.entrenamientos.list({ orderBy: 'fecha', filters: [['fecha', 'gte', lunes], ['fecha', 'lte', domingo]] }),
       this.r.revisiones.list({ orderBy: 'semana' }),
@@ -103,7 +103,7 @@ export class BienestarService {
       habitos: programados ? Math.min(1, regsHab.length / programados) : null,
       ingresos: sum(movs.filter((m) => m.tipo === 'ingreso')),
       gastos: sum(movs.filter((m) => m.tipo === 'gasto')),
-      horasTrabajo: sum(horas, (x) => x.horas),
+      horasTrabajo: horasTurnos(horas, lunes, domingo),
       minutosEstudio: sum(sesiones, (x) => x.minutos),
       minutosEjercicio: sum(entrenos, (x) => x.duracion_min),
       actual: revisiones.find((r) => r.semana === lunes) || null,
@@ -123,12 +123,9 @@ export class AsistenteService {
       case 'ingreso':
         await this.service.guardarMovimiento(null, { tipo: a.tipo, monto: a.monto, categoria: a.tipo === 'gasto' ? a.categoria : 'Otros', descripcion: a.descripcion, fecha: a.fecha });
         return a.tipo === 'gasto' ? 'Gasto registrado' : 'Ingreso registrado';
-      case 'horas': {
-        const { tarifa } = await this.vida.trabajo.listado();
-        if (!tarifa) throw new Error('Primero define tu tarifa por hora en Trabajo.');
-        await this.vida.trabajo.guardar(null, { fecha: a.fecha, horas: a.horas, tarifa });
-        return `${a.horas} h registradas`;
-      }
+      case 'turno':
+        await this.vida.trabajo.guardar(null, { titulo: a.titulo, fecha: a.fecha, hora_inicio: a.hora_inicio, hora_fin: a.hora_fin, semanal: false, recordatorio_min: 60 });
+        return 'Turno agregado 💼 (te aviso 1 hora antes)';
       case 'sueno':
         await this.vida.salud.guardarRegistro({ fecha: a.fecha, horas_sueno: a.horas });
         return 'Sueño registrado';

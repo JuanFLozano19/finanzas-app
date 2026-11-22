@@ -127,3 +127,30 @@ test('minutos de estudio por materia', () => {
 test('integrantes desde texto', () => {
   assert.deepEqual(parseIntegrantes('Nhara - 3001234567\nAlvarado\n'), [{ nombre: 'Nhara', contacto: '3001234567' }, { nombre: 'Alvarado', contacto: null }]);
 });
+
+import { duracionHoras, horasTurnos, proximoTurno } from '../js/domain/vida.js';
+
+test('duración de turnos, incluido turno de noche', () => {
+  assert.equal(duracionHoras({ hora_inicio: '08:00:00', hora_fin: '14:30:00' }), 6.5);
+  assert.equal(duracionHoras({ hora_inicio: '22:00', hora_fin: '06:00' }), 8);
+  assert.equal(duracionHoras({ hora_inicio: '08:00' }), 0);
+});
+
+test('horas de turnos en la semana con turnos semanales', () => {
+  const ev = [
+    { id: 'a', fecha: '2026-11-16', semanal: true, hora_inicio: '08:00', hora_fin: '12:00' }, // cada lunes
+    { id: 'b', fecha: '2026-11-20', semanal: false, hora_inicio: '14:00', hora_fin: '18:00' },
+  ];
+  assert.equal(horasTurnos(ev, '2026-11-16', '2026-11-22'), 8);
+  assert.equal(horasTurnos(ev, '2026-11-23', '2026-11-29'), 4);
+});
+
+test('próximo turno: en curso y siguiente', () => {
+  const ev = [{ id: 'a', fecha: '2026-11-23', semanal: true, hora_inicio: '08:00', hora_fin: '12:00' }];
+  const enCurso = proximoTurno(ev, new Date('2026-11-23T09:00:00'));
+  assert.equal(enCurso.enCurso, true);
+  const siguiente = proximoTurno(ev, new Date('2026-11-23T13:00:00'));
+  assert.deepEqual([siguiente.fecha, siguiente.enCurso], ['2026-11-30', false]);
+  const noche = proximoTurno([{ id: 'n', fecha: '2026-11-22', semanal: false, hora_inicio: '22:00', hora_fin: '06:00' }], new Date('2026-11-23T02:00:00'));
+  assert.equal(noche.enCurso, true);
+});

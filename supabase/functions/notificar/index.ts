@@ -25,9 +25,10 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 const addDays = (s: string, n: number) => { const d = new Date(`${s}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
 const weekday = (s: string) => new Date(`${s}T00:00:00Z`).getUTCDay();
 const minutos = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+const h12 = (t: string) => { if (!t) return ''; const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'a. m.' : 'p. m.'}`; };
 
 type Msg = { clave: string; title: string; body: string; url: string; tag?: string };
-const PREFS = { eventos: true, tareas: true, evaluaciones: true, habitos: true, cumpleanos: true, pagos: true };
+const PREFS = { turnos: true, eventos: true, tareas: true, evaluaciones: true, habitos: true, cumpleanos: true, pagos: true };
 
 async function mensajesPara(userId: string, prefs: typeof PREFS): Promise<Msg[]> {
   const ahora = local();
@@ -39,14 +40,26 @@ async function mensajesPara(userId: string, prefs: typeof PREFS): Promise<Msg[]>
   const out: Msg[] = [];
   const q = (t: string) => db.from(t).select('*').eq('user_id', userId);
 
-  if (prefs.eventos) {
-    const { data: ev } = await q('eventos').lte('fecha', hoy).not('hora_inicio', 'is', null);
-    for (const e of ev || []) {
-      const toca = e.fecha === hoy || (e.semanal && (!e.fecha_fin || e.fecha_fin >= hoy) && weekday(e.fecha) === weekday(hoy));
-      const falta = minutos(e.hora_inicio) - minAhora;
-      if (toca && falta > 0 && falta <= 35) {
-        out.push({ clave: `ev:${e.id}:${hoy}`, title: `En ${falta} min: ${e.titulo}`, body: e.lugar || 'Revisa tu agenda', url: './#agenda', tag: `ev-${e.id}` });
-      }
+  // Clases, citas y turnos: aviso X minutos antes (recordatorio_min de cada evento)
+  const { data: ev } = await q('eventos').lte('fecha', manana).not('hora_inicio', 'is', null);
+  const tocaEn = (e: any, dia: string) => e.fecha === dia || (e.semanal && e.fecha <= dia && (!e.fecha_fin || e.fecha_fin >= dia) && weekday(e.fecha) === weekday(dia));
+  for (const e of ev || []) {
+    const esTurno = e.tipo === 'trabajo';
+    if (esTurno ? !prefs.turnos : !prefs.eventos) continue;
+    const aviso = e.recordatorio_min ?? 30;
+    const falta = minutos(e.hora_inicio) - minAhora;
+    if (aviso > 0 && tocaEn(e, hoy) && falta > 0 && falta <= aviso) {
+      const cuanto = falta >= 60 ? `${Math.floor(falta / 60)} h${falta % 60 ? ` ${falta % 60} min` : ''}` : `${falta} min`;
+      out.push(esTurno
+        ? { clave: `ev:${e.id}:${hoy}`, title: `💼 Turno en ${cuanto}: ${e.titulo}`, body: `${h12(e.hora_inicio)} a ${h12(e.hora_fin)}${e.notas ? ` · ${e.notas}` : ''}`, url: './#trabajo', tag: `ev-${e.id}` }
+        : { clave: `ev:${e.id}:${hoy}`, title: `En ${cuanto}: ${e.titulo}`, body: e.lugar || 'Revisa tu agenda', url: './#agenda', tag: `ev-${e.id}` });
+    }
+  }
+  // Turnos de mañana: aviso la noche anterior (desde las 8 p. m.)
+  if (hora >= 20 && prefs.turnos) {
+    for (const e of (ev || []).filter((x) => x.tipo === 'trabajo' && tocaEn(x, manana))) {
+      out.push({ clave: `noche:${e.id}:${manana}`, title: `💼 Mañana tienes turno: ${e.titulo}`,
+        body: `De ${h12(e.hora_inicio)} a ${h12(e.hora_fin)}${e.notas ? ` · ${e.notas}` : ''}`, url: './#trabajo', tag: `noche-${e.id}` });
     }
   }
 

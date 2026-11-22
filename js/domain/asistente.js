@@ -94,7 +94,7 @@ const primeraMayus = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 /**
  * Interpreta una frase. Devuelve { tipo, ...datos } o { tipo: 'desconocido' }.
- * Tipos: gasto, ingreso, horas, sueno, agua, entreno, lectura, prestamo, evento, tarea, nota.
+ * Tipos: gasto, ingreso, turno, sueno, agua, entreno, lectura, prestamo, evento, tarea, nota.
  */
 export function interpretar(frase, hoyIso) {
   const original = String(frase || '').trim();
@@ -102,9 +102,28 @@ export function interpretar(frase, hoyIso) {
   if (!t) return { tipo: 'desconocido' };
   const fecha = parseFecha(original, hoyIso);
 
-  // Horas de trabajo: "trabajé 4 horas", "4.5h de trabajo", "turno de 6 horas"
-  let m = /(?:trabaje|turno de|labore)\s*(\d+(?:[.,]\d+)?)\s*(?:h\b|horas?)/.exec(t) || /(\d+(?:[.,]\d+)?)\s*(?:h\b|horas?)\s*(?:de\s+)?(?:trabajo|turno)/.exec(t);
-  if (m) return { tipo: 'horas', horas: decimal(m[1]), fecha: fecha?.fecha || hoyIso };
+  // Turno de trabajo: "turno mañana de 8 a 2", "tengo turno el jueves de 2 a 6 pm", "turno de grabación hoy 14:00 a 18:00"
+  let m;
+  if (/\bturno\b/.test(t)) {
+    const r = /(?:de\s+|desde\s+las?\s+|a\s+las?\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.?\s?m\.?|p\.?\s?m\.?)?\s*(?:a|hasta|-|–)\s*(?:las?\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.?\s?m\.?|p\.?\s?m\.?)?/.exec(t);
+    if (r) {
+      const pm = (x) => x && /p/.test(x);
+      const am = (x) => x && /a/.test(x);
+      let h1 = Number(r[1]); let h2 = Number(r[4]);
+      if (pm(r[3]) && h1 < 12) h1 += 12;
+      if (am(r[3]) && h1 === 12) h1 = 0;
+      if (!r[3] && h1 >= 1 && h1 <= 5) h1 += 12;
+      if (pm(r[6]) && h2 < 12) h2 += 12;
+      else if (!r[6] && h2 <= h1 && h2 + 12 > h1 && h2 + 12 < 24) h2 += 12;
+      if (h1 < 24 && h2 < 24) {
+        const hh = (h, mm) => `${String(h).padStart(2, '0')}:${mm || '00'}`;
+        const resto = quitar(original, fecha?.texto, new RegExp(r[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'))
+          .replace(/^(tengo|hay|me toca)\s+/i, '').replace(/\s+(el|para|para el|de)$/i, '').trim();
+        return { tipo: 'turno', titulo: primeraMayus(resto) || 'Turno', fecha: fecha?.fecha || hoyIso,
+          hora_inicio: hh(h1, r[2]), hora_fin: hh(h2, r[5]) };
+      }
+    }
+  }
 
   // Sueño: "dormí 7 horas", "dormi 6.5"
   m = /dormi\s*(\d+(?:[.,]\d+)?)\s*(?:h\b|horas?)?/.exec(t);

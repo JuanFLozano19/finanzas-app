@@ -156,4 +156,37 @@ export function parseIntegrantes(texto) {
   });
 }
 
+// ---------- Turnos de trabajo ----------
+const aMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+
+/** Horas de un turno; si termina antes de empezar, es un turno de noche que pasa la medianoche. */
+export function duracionHoras(e) {
+  if (!e.hora_inicio || !e.hora_fin) return 0;
+  let m = aMin(e.hora_fin) - aMin(e.hora_inicio);
+  if (m <= 0) m += 1440;
+  return m / 60;
+}
+
+/** Todas las ocurrencias (incluidas las semanales) entre dos fechas. */
+export function instancias(eventos, desde, hasta) {
+  const out = [];
+  for (let d = desde; d <= hasta; d = addDays(d, 1)) for (const e of eventosDelDia(eventos, d)) out.push({ fecha: d, evento: e });
+  return out;
+}
+
+export const horasTurnos = (eventos, desde, hasta) => round2(instancias(eventos, desde, hasta).reduce((a, i) => a + duracionHoras(i.evento), 0));
+
+/** Próximo turno (o el que está en curso) a partir de `ahora` (Date local). */
+export function proximoTurno(eventos, ahora, dias = 30) {
+  const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+  for (const { fecha, evento } of instancias(eventos, addDays(hoy, -1), addDays(hoy, dias))) {
+    if (!evento.hora_inicio) continue;
+    const inicio = new Date(`${fecha}T${evento.hora_inicio.slice(0, 5)}:00`);
+    const fin = new Date(inicio.getTime() + duracionHoras(evento) * 3600000);
+    if (fin <= ahora) continue;
+    return { fecha, evento, inicio, fin, enCurso: inicio <= ahora, minutosPara: Math.round((inicio - ahora) / 60000) };
+  }
+  return null;
+}
+
 function round2(x) { return Math.round(x * 100) / 100; }
