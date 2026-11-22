@@ -7,6 +7,7 @@ import { AuthService } from './services/AuthService.js';
 import { FinanzasService } from './services/FinanzasService.js';
 import { crearServiciosVida } from './services/VidaServices.js';
 import { PlataService } from './services/PlataService.js';
+import { HorarioService, ApuntesService, GruposService, EstudioService } from './services/UniversidadExtra.js';
 import { h, toast, tabs } from './ui/dom.js';
 import { renderAuth } from './ui/views/auth.js';
 import { renderHoy } from './ui/views/hoy.js';
@@ -26,6 +27,10 @@ import { renderAjustes, seccionesAjustes } from './ui/views/ajustes.js';
 import { renderCuentas, renderPresupuestos, renderFijos, renderPrestamos, seccionReparto } from './ui/views/plata.js';
 import { renderDeseos } from './ui/views/deseos.js';
 import { renderEstadisticas } from './ui/views/estadisticas.js';
+import { renderHorario } from './ui/views/horario.js';
+import { renderApuntes } from './ui/views/apuntes.js';
+import { renderGrupos } from './ui/views/grupos.js';
+import { renderEstudio, iniciarTemporizador } from './ui/views/estudio.js';
 
 aplicarTema(temaGuardado());
 
@@ -34,6 +39,8 @@ const auth = new AuthService(supabase);
 const service = new FinanzasService(repos);
 const vida = crearServiciosVida(repos);
 const plata = new PlataService(repos);
+const uni = { horario: new HorarioService(repos), apuntes: new ApuntesService(repos, supabase), grupos: new GruposService(repos), estudio: new EstudioService(repos) };
+iniciarTemporizador(uni.estudio);
 seccionesAjustes.push(seccionReparto);
 
 // Para agregar un módulo nuevo basta con registrarlo aquí (abierto/cerrado).
@@ -44,7 +51,11 @@ const RUTAS = {
   tareas: { titulo: 'Tareas', icono: '✅', render: renderTareas, tab: 'tareas', grupo: 'Mi día' },
   habitos: { titulo: 'Hábitos', icono: '🌱', render: renderHabitos, tab: 'mas', grupo: 'Mi día', enMas: true, desc: 'Rachas y constancia' },
   notas: { titulo: 'Diario y notas', icono: '📔', render: renderNotas, tab: 'mas', grupo: 'Mi día', enMas: true, desc: 'Ideas y cómo te fue' },
-  universidad: { titulo: 'Universidad', icono: '🎓', render: renderUniversidad, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Materias, notas y promedio' },
+  universidad: { titulo: 'Universidad', icono: '🎓', render: renderUniversidad, tab: 'mas', grupo: 'Universidad', enMas: true, desc: 'Materias, horario, apuntes y estudio', sub: 'universidad', menu: 'Materias' },
+  horario: { titulo: 'Horario', icono: '🗓', render: renderHorario, tab: 'mas', grupo: 'Universidad', sub: 'universidad' },
+  apuntes: { titulo: 'Apuntes', icono: '📎', render: renderApuntes, tab: 'mas', grupo: 'Universidad', sub: 'universidad' },
+  grupos: { titulo: 'Trabajos en grupo', icono: '👥', render: renderGrupos, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Grupos' },
+  estudio: { titulo: 'Estudio', icono: '⏱', render: renderEstudio, tab: 'mas', grupo: 'Universidad', sub: 'universidad', menu: 'Pomodoro' },
   trabajo: { titulo: 'Trabajo', icono: '💼', render: renderTrabajo, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Horas y pagos' },
   salud: { titulo: 'Salud', icono: '💪', render: renderSalud, tab: 'mas', grupo: 'Áreas', enMas: true, desc: 'Ejercicio, sueño y agua' },
   finanzas: { titulo: 'Plata', icono: '💰', render: renderResumen, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas', menu: 'Resumen' },
@@ -62,7 +73,7 @@ RUTAS.ajustes = { titulo: 'Ajustes', icono: '⚙️', render: renderAjustes, tab
 RUTAS.mas = { titulo: 'Más', icono: '☰', render: crearVistaMas(RUTAS), tab: 'mas', oculta: true };
 
 const TABS = [['hoy', '🏠', 'Hoy'], ['agenda', '🗓', 'Agenda'], ['tareas', '✅', 'Tareas'], ['finanzas', '💰', 'Plata'], ['mas', '☰', 'Más']];
-const SUBTABS = { finanzas: ['finanzas', 'movimientos', 'cuentas', 'presupuestos', 'fijos', 'deudas', 'prestamos', 'metas', 'deseos', 'estadisticas'] };
+const SUBTABS = { universidad: ['universidad', 'horario', 'apuntes', 'grupos', 'estudio'], finanzas: ['finanzas', 'movimientos', 'cuentas', 'presupuestos', 'fijos', 'deudas', 'prestamos', 'metas', 'deseos', 'estadisticas'] };
 
 const root = document.getElementById('app');
 let sesion = null;
@@ -113,7 +124,7 @@ async function mostrar() {
   shell.contenido.replaceChildren(h('div', { class: 'loader' }, h('span'), h('span'), h('span')));
   window.scrollTo({ top: 0 });
   try {
-    await r.render(shell.contenido, { service, vida, plata, irA, correo: sesion.user.email, salir });
+    await r.render(shell.contenido, { service, vida, plata, ...uni, irA, correo: sesion.user.email, salir });
   } catch (e) {
     console.error(e);
     const offline = !navigator.onLine;

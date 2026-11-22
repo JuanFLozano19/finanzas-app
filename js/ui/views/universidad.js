@@ -1,7 +1,7 @@
-import { h, fill, emptyState, formulario, toast, progressBar } from '../dom.js';
+import { h, fill, emptyState, formulario, toast, progressBar, dialogo } from '../dom.js';
 import { fmtDate } from '../../core/format.js';
 import { formTarea, tareaItem } from '../components.js';
-import { NOTA_APROBATORIA } from '../../domain/vida.js';
+import { NOTA_APROBATORIA, simularMateria } from '../../domain/vida.js';
 
 const COLORES = [['#0b7a5a', 'Verde'], ['#2563eb', 'Azul'], ['#7c3aed', 'Morado'], ['#db2777', 'Rosa'], ['#ea580c', 'Naranja'], ['#ca8a04', 'Mostaza'], ['#0891b2', 'Cian'], ['#475569', 'Gris']];
 const nota = (x) => (x == null ? '—' : Number(x).toFixed(2));
@@ -43,6 +43,34 @@ function formEvaluacion(vida, materia, ev, recargar) {
   });
 }
 
+function simulador(m) {
+  const pendientes = m.evaluaciones.filter((e) => e.nota == null);
+  const valores = Object.fromEntries(pendientes.map((e) => [e.id, 3.5]));
+  const res = h('div', { class: 'sim-result' });
+  const pintar = () => {
+    const r = simularMateria(m.evaluaciones, valores);
+    const falta = Math.max(0, 100 - r.pctTotal);
+    res.replaceChildren(
+      h('small', {}, 'Nota final simulada'),
+      h('b', { class: r.acumulado >= NOTA_APROBATORIA ? 'pos' : 'neg' }, nota(r.acumulado)),
+      h('small', { class: 'muted' }, r.acumulado >= NOTA_APROBATORIA ? '¡Así pasarías! 🎉' : `Te faltarían ${nota(NOTA_APROBATORIA - r.acumulado)} para el 3.0`),
+      falta > 0 ? h('small', { class: 'muted' }, `Ojo: faltan evaluaciones por registrar (${falta}% del total).`) : null);
+  };
+  const d = dialogo(h('div', { class: 'sheet-body' },
+    h('div', { class: 'sheet-head' }, h('h2', {}, `Simular · ${m.nombre}`), h('button', { class: 'icon-btn', 'aria-label': 'Cerrar', onclick: () => d.close() }, '✕')),
+    h('p', { class: 'muted' }, 'Mueve las barras para ver qué pasaría con distintas notas. Nada se guarda.'),
+    pendientes.map((e) => {
+      const lbl = h('b', {}, nota(valores[e.id]));
+      return h('label', { class: 'field' }, h('span', { class: 'label row-between' }, `${e.nombre} (${Number(e.porcentaje)}%)`, lbl),
+        h('input', { type: 'range', min: '0', max: '5', step: '0.1', value: String(valores[e.id]), oninput: (ev) => {
+          valores[e.id] = Number(ev.target.value); lbl.textContent = nota(valores[e.id]); pintar();
+        } }));
+    }),
+    res,
+    h('div', { class: 'sheet-actions' }, h('span'), h('button', { class: 'btn primary', onclick: () => d.close() }, 'Listo'))));
+  pintar();
+}
+
 function mensaje(e) {
   if (e.pctTotal === 0) return 'Agrega las evaluaciones del semestre con sus porcentajes.';
   if (e.perdida) return 'Se completó el 100% y no alcanzó el 3.0 😔';
@@ -72,6 +100,7 @@ function tarjeta(vida, m, materias, recargar) {
     m.pendientes.length ? h('ul', { class: 'tasks' }, m.pendientes.map((t) => tareaItem(vida, t, materias, recargar))) : null,
     h('div', { class: 'card-actions' },
       h('button', { class: 'btn primary', onclick: () => formEvaluacion(vida, m, null, recargar) }, '+ Evaluación'),
+      m.evaluaciones.some((ev) => ev.nota == null) ? h('button', { class: 'btn ghost', onclick: () => simulador(m) }, '🔮 Simular') : null,
       h('button', { class: 'btn ghost', onclick: () => formTarea(vida, null, materias, recargar, { materia_id: m.id }) }, '+ Tarea'),
       h('button', { class: 'btn ghost', onclick: () => formMateria(vida, m, recargar) }, 'Editar')),
   );

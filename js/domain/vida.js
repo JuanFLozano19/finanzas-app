@@ -38,7 +38,7 @@ export function cumplimiento(habito, fechasHechas, hoyIso, dias = 30) {
 // ---------- Agenda ----------
 export function eventosDelDia(eventos, iso) {
   return eventos
-    .filter((e) => e.fecha === iso || (e.semanal && e.fecha <= iso && weekday(e.fecha) === weekday(iso)))
+    .filter((e) => e.fecha === iso || (e.semanal && e.fecha <= iso && (!e.fecha_fin || iso <= e.fecha_fin) && weekday(e.fecha) === weekday(iso)))
     .sort((a, b) => (a.hora_inicio || '99') < (b.hora_inicio || '99') ? -1 : 1);
 }
 
@@ -121,6 +121,39 @@ export function resumenSemanaSalud(entrenamientos, registros, hoyIso) {
     pesoActual: pesos[0]?.peso_kg != null ? Number(pesos[0].peso_kg) : null,
     pesoAnterior: pesos[1]?.peso_kg != null ? Number(pesos[1].peso_kg) : null,
   };
+}
+
+/** Nota final si las evaluaciones sin nota sacan lo indicado en `simuladas` ({id: nota}). */
+export function simularMateria(evaluaciones, simuladas) {
+  const ev = evaluaciones.map((e) => (e.nota == null && simuladas[e.id] != null ? { ...e, nota: simuladas[e.id] } : e));
+  return estadoMateria(ev);
+}
+
+/** Primera fecha >= desde que cae en el día de la semana indicado (0 = domingo). */
+export function primerDia(desdeIso, dia) {
+  const delta = (dia - weekday(desdeIso) + 7) % 7;
+  return addDays(desdeIso, delta);
+}
+
+/** Minutos de estudio por materia (y total) en un rango de fechas. */
+export function minutosPorMateria(sesiones, desde, hasta) {
+  const mapa = new Map();
+  let total = 0;
+  for (const s of sesiones) {
+    if (s.fecha < desde || s.fecha > hasta) continue;
+    const k = s.materia_id || 'sin';
+    mapa.set(k, (mapa.get(k) || 0) + Number(s.minutos));
+    total += Number(s.minutos);
+  }
+  return { porMateria: mapa, total };
+}
+
+/** Convierte "Ana - 3001234567\nLuis" en [{nombre, contacto}]. */
+export function parseIntegrantes(texto) {
+  return String(texto || '').split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+    const [nombre, ...resto] = l.split(/\s+[-–:]\s+/);
+    return { nombre: nombre.trim(), contacto: resto.join(' - ').trim() || null };
+  });
 }
 
 function round2(x) { return Math.round(x * 100) / 100; }

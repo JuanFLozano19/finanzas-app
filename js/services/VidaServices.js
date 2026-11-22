@@ -16,7 +16,9 @@ class CrudService {
 export class TareasService extends CrudService {
   constructor(repos) { super(repos.tareas); this.materias = repos.materias; }
   async listado() {
-    const [tareas, materias] = await Promise.all([this.repo.list(), this.materias.list({ orderBy: 'nombre', ascending: true })]);
+    const [todas, materias] = await Promise.all([this.repo.list(), this.materias.list({ orderBy: 'nombre', ascending: true })]);
+    // Las partes de trabajos en grupo asignadas a otra persona no son tus tareas.
+    const tareas = todas.filter((t) => !t.proyecto_id || !t.responsable || /^yo$/i.test(t.responsable.trim()));
     return { grupos: agruparTareas(tareas, today()), materias };
   }
   marcar(id, hecha) { return this.repo.update(id, { hecha, hecha_at: hecha ? new Date().toISOString() : null }); }
@@ -77,7 +79,7 @@ export class UniversidadService {
     ]);
     const items = materias.map((m) => {
       const ev = evals.filter((e) => e.materia_id === m.id);
-      return { ...m, evaluaciones: ev, estado: estadoMateria(ev), pendientes: tareas.filter((t) => t.materia_id === m.id) };
+      return { ...m, evaluaciones: ev, estado: estadoMateria(ev), pendientes: tareas.filter((t) => t.materia_id === m.id && (!t.proyecto_id || !t.responsable || /^yo$/i.test(t.responsable.trim()))) };
     });
     const activas = items.filter((m) => m.activa);
     const hoy = today();

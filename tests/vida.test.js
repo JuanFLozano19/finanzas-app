@@ -96,3 +96,34 @@ test('resumen semanal de salud', () => {
   assert.equal(r.pesoActual, 70);
   assert.equal(r.pesoAnterior, 70.5);
 });
+
+import { simularMateria, primerDia, minutosPorMateria, parseIntegrantes } from '../js/domain/vida.js';
+
+test('evento semanal termina en fecha_fin (fin de semestre)', () => {
+  const ev = [{ id: 1, fecha: '2026-08-04', semanal: true, fecha_fin: '2026-11-24' }];
+  assert.equal(eventosDelDia(ev, '2026-11-24').length, 1);
+  assert.equal(eventosDelDia(ev, '2026-12-01').length, 0);
+});
+
+test('simulador: nota final con notas hipotéticas', () => {
+  const evs = [{ id: 'a', porcentaje: 60, nota: 2.5 }, { id: 'b', porcentaje: 40, nota: null }];
+  const r = simularMateria(evs, { b: 4 });
+  assert.equal(r.acumulado, 3.1);
+  assert.equal(r.aprobada, true);
+});
+
+test('primer día de la semana del semestre', () => {
+  assert.equal(primerDia('2026-08-03', 3), '2026-08-05'); // lunes 3 → miércoles 5
+  assert.equal(primerDia('2026-08-03', 1), '2026-08-03');
+});
+
+test('minutos de estudio por materia', () => {
+  const r = minutosPorMateria([{ materia_id: 'm', minutos: 25, fecha: '2026-11-20' }, { materia_id: 'm', minutos: 50, fecha: '2026-11-21' },
+    { materia_id: null, minutos: 25, fecha: '2026-11-21' }, { materia_id: 'm', minutos: 99, fecha: '2026-10-01' }], '2026-11-16', '2026-11-22');
+  assert.equal(r.total, 100);
+  assert.equal(r.porMateria.get('m'), 75);
+});
+
+test('integrantes desde texto', () => {
+  assert.deepEqual(parseIntegrantes('Nhara - 3001234567\nAlvarado\n'), [{ nombre: 'Nhara', contacto: '3001234567' }, { nombre: 'Alvarado', contacto: null }]);
+});

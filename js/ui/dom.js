@@ -44,7 +44,7 @@ export function toast(mensaje, tipo = 'ok') {
   setTimeout(() => t.remove(), 3200);
 }
 
-function dialogo(contenido, onClose) {
+export function dialogo(contenido, onClose) {
   const d = h('dialog', { class: 'sheet' }, contenido);
   d.addEventListener('close', () => { d.remove(); onClose?.(); });
   d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
@@ -77,6 +77,8 @@ function campo(f, valor) {
     }));
   } else if (f.type === 'textarea') {
     input = h('textarea', { ...comunes, rows: f.rows || 2 }, valor ?? '');
+  } else if (f.type === 'file') {
+    input = h('input', { ...comunes, type: 'file', accept: f.accept });
   } else if (f.type === 'dias') {
     const sel = new Set((valor ?? f.default ?? []).map(Number));
     const grupo = h('div', { class: 'day-picker' });
@@ -132,6 +134,7 @@ export function formulario({ titulo, campos, valores = {}, enviar = 'Guardar', o
     for (const f of campos) {
       if (f.type === 'checkbox') { datos[f.name] = fd.has(f.name); continue; }
       if (f.type === 'dias') { datos[f.name] = fd.getAll(f.name).map(Number); continue; }
+      if (f.type === 'file') { const v = fd.get(f.name); datos[f.name] = v && v.size ? v : null; continue; }
       let v = fd.get(f.name);
       if (typeof v === 'string') v = v.trim();
       if (v === '' || v == null) v = null;
