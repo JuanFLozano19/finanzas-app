@@ -1,9 +1,9 @@
 {
-  "name": "Mis Finanzas",
-  "short_name": "Finanzas",
-  "description": "Administra tus ingresos, deudas y metas de ahorro.",
+  "name": "Mi Vida",
+  "short_name": "Mi Vida",
+  "description": "Agenda, tareas, hábitos, universidad, trabajo, salud y finanzas en un solo lugar.",
   "lang": "es-CO",
-  "start_url": "./#resumen",
+  "start_url": "./#hoy",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",

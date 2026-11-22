@@ -28,6 +28,22 @@ export class BaseRepository {
     return BaseRepository.#check(await this.client.from(this.table).update(values).eq('id', id).select().single());
   }
 
+  async upsert(values, onConflict) {
+    return BaseRepository.#check(await this.client.from(this.table).upsert(values, { onConflict }).select().single());
+  }
+
+  async findOne(filters = []) {
+    let q = this.client.from(this.table).select('*');
+    for (const [col, op, val] of filters) q = q[op](col, val);
+    return BaseRepository.#check(await q.maybeSingle());
+  }
+
+  async removeWhere(filters) {
+    let q = this.client.from(this.table).delete();
+    for (const [col, op, val] of filters) q = q[op](col, val);
+    BaseRepository.#check(await q);
+  }
+
   async remove(id) {
     BaseRepository.#check(await this.client.from(this.table).delete().eq('id', id));
   }
@@ -47,4 +63,15 @@ export const crearRepositorios = (client) => ({
   pagos: new BaseRepository(client, 'pagos_deuda'),
   metas: new BaseRepository(client, 'metas'),
   aportes: new BaseRepository(client, 'aportes_meta'),
+  tareas: new BaseRepository(client, 'tareas'),
+  habitos: new BaseRepository(client, 'habitos'),
+  registrosHabito: new BaseRepository(client, 'registros_habito'),
+  eventos: new BaseRepository(client, 'eventos'),
+  notas: new BaseRepository(client, 'notas'),
+  materias: new BaseRepository(client, 'materias'),
+  evaluaciones: new BaseRepository(client, 'evaluaciones'),
+  ajustes: new BaseRepository(client, 'ajustes'),
+  horas: new BaseRepository(client, 'horas_trabajo'),
+  entrenamientos: new BaseRepository(client, 'entrenamientos'),
+  salud: new BaseRepository(client, 'registros_salud'),
 });

@@ -1,14 +1,15 @@
 // Service worker: guarda la "cáscara" de la app para que abra rápido e instale como app.
 // Los datos (Supabase) nunca se guardan en caché: siempre van a la red.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `finanzas-${VERSION}`;
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/styles.css',
   './js/app.js', './js/config.js', './js/core/supabase.js', './js/core/format.js',
-  './js/domain/calculos.js', './js/data/repositories.js',
-  './js/services/AuthService.js', './js/services/FinanzasService.js',
-  './js/ui/dom.js', './js/ui/views/auth.js', './js/ui/views/resumen.js',
-  './js/ui/views/movimientos.js', './js/ui/views/deudas.js', './js/ui/views/metas.js',
+  './js/domain/calculos.js', './js/domain/vida.js', './js/data/repositories.js',
+  './js/services/AuthService.js', './js/services/FinanzasService.js', './js/services/VidaServices.js',
+  './js/ui/dom.js', './js/ui/components.js',
+  ...['auth', 'hoy', 'agenda', 'tareas', 'habitos', 'notas', 'universidad', 'trabajo', 'salud', 'mas',
+    'resumen', 'movimientos', 'deudas', 'metas'].map((v) => `./js/ui/views/${v}.js`),
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
 ];
 

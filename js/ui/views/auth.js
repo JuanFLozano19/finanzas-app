@@ -20,8 +20,8 @@ export function renderAuth(root, authService) {
   cambio.addEventListener('click', () => { modo = modo === 'login' ? 'registro' : 'login'; pintar(); });
 
   const form = h('form', { class: 'auth-card' },
-    h('div', { class: 'brand-big' }, h('img', { src: 'icons/icon.svg', alt: '' }), h('span', {}, 'Mis Finanzas')),
-    h('p', { class: 'muted' }, 'Ingresos, deudas y metas en un solo lugar, en tu celular y en tu PC.'),
+    h('div', { class: 'brand-big' }, h('img', { src: 'icons/icon.svg', alt: '' }), h('span', {}, 'Mi Vida')),
+    h('p', { class: 'muted' }, 'Tu agenda, tareas, hábitos, universidad, trabajo, salud y plata en un solo lugar.'),
     titulo,
     h('label', { class: 'field' }, h('span', { class: 'label' }, 'Correo'),
       h('input', { name: 'email', type: 'email', required: true, autocomplete: 'email' })),

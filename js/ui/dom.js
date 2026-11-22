@@ -76,7 +76,13 @@ function campo(f, valor) {
       return h('option', { value: val, selected: String(valor) === String(val) }, label);
     }));
   } else if (f.type === 'textarea') {
-    input = h('textarea', { ...comunes, rows: 2 }, valor ?? '');
+    input = h('textarea', { ...comunes, rows: f.rows || 2 }, valor ?? '');
+  } else if (f.type === 'dias') {
+    const sel = new Set((valor ?? f.default ?? []).map(Number));
+    const grupo = h('div', { class: 'day-picker' });
+    f.options.forEach(([v, lbl]) => grupo.append(h('label', {},
+      h('input', { type: 'checkbox', name: f.name, value: v, checked: sel.has(v) }), h('span', {}, lbl))));
+    return h('div', { class: 'field' }, h('span', { class: 'label' }, f.label), grupo);
   } else if (f.type === 'checkbox') {
     return h('label', { class: 'check' }, h('input', { type: 'checkbox', name: f.name, checked: Boolean(valor) }), f.label);
   } else if (f.type === 'emoji') {
@@ -103,7 +109,7 @@ function campo(f, valor) {
  * Abre un formulario genérico en un diálogo.
  * onSubmit(valores) puede lanzar error: se muestra y el diálogo sigue abierto.
  */
-export function formulario({ titulo, campos, valores = {}, enviar = 'Guardar', onSubmit, onEliminar }) {
+export function formulario({ titulo, campos, valores = {}, enviar = 'Guardar', onSubmit, onEliminar, validar }) {
   const error = h('p', { class: 'form-error', hidden: true });
   const btn = h('button', { class: 'btn primary', type: 'submit' }, enviar);
   const form = h('form', { class: 'sheet-body', novalidate: false },
@@ -125,6 +131,7 @@ export function formulario({ titulo, campos, valores = {}, enviar = 'Guardar', o
     const datos = {};
     for (const f of campos) {
       if (f.type === 'checkbox') { datos[f.name] = fd.has(f.name); continue; }
+      if (f.type === 'dias') { datos[f.name] = fd.getAll(f.name).map(Number); continue; }
       let v = fd.get(f.name);
       if (typeof v === 'string') v = v.trim();
       if (v === '' || v == null) v = null;
@@ -132,11 +139,25 @@ export function formulario({ titulo, campos, valores = {}, enviar = 'Guardar', o
       datos[f.name] = v;
     }
     btn.disabled = true; error.hidden = true;
-    try { await onSubmit(datos); d.close(); } catch (err) {
+    try { if (validar) validar(datos); await onSubmit(datos); d.close(); } catch (err) {
       error.textContent = err.message; error.hidden = false;
     } finally { btn.disabled = false; }
   });
   const d = dialogo(form);
   setTimeout(() => form.querySelector('input:not([type=radio]):not([type=checkbox]),select')?.focus(), 50);
   return d;
+}
+
+/** Casilla redonda para marcar algo como hecho. */
+export function checkCircle(hecho, onToggle, etiqueta) {
+  return h('button', {
+    class: `check-circle ${hecho ? 'on' : ''}`, type: 'button', 'aria-pressed': String(hecho), 'aria-label': etiqueta,
+    onclick: async (e) => { e.stopPropagation(); e.currentTarget.disabled = true; try { await onToggle(); } catch (err) { toast(err.message, 'error'); e.currentTarget.disabled = false; } },
+  }, hecho ? '✓' : '');
+}
+
+/** Barra de pestañas internas. */
+export function tabs(items, activo, onSelect) {
+  return h('div', { class: 'tabs', role: 'tablist' }, items.map(([id, label]) =>
+    h('button', { class: `tab ${id === activo ? 'active' : ''}`, role: 'tab', 'aria-selected': String(id === activo), onclick: () => onSelect(id) }, label)));
 }

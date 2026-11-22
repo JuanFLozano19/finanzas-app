@@ -30,3 +30,34 @@ export function monthLabel(ym) {
   const s = new Date(y, m - 1, 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+/** Suma n días a una fecha ISO (YYYY-MM-DD). */
+export function addDays(iso, n) {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + n);
+  return today(d);
+}
+
+/** Día de la semana: 0 = domingo … 6 = sábado. */
+export const weekday = (iso) => new Date(`${iso}T00:00:00`).getDay();
+
+export const DIAS_CORTOS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+export function fmtDayLong(iso) {
+  const s = new Date(`${iso}T00:00:00`).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** '14:30:00' -> '2:30 p. m.' */
+export function fmtTime(t) {
+  if (!t) return '';
+  const [hh, mm] = t.split(':').map(Number);
+  const d = new Date(2000, 0, 1, hh, mm);
+  return d.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
+}
+
+/** Lunes de la semana de una fecha ISO. */
+export function startOfWeek(iso) {
+  const wd = weekday(iso);
+  return addDays(iso, wd === 0 ? -6 : 1 - wd);
+}
