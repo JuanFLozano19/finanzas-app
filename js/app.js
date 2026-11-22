@@ -12,6 +12,9 @@ import { renderCarrera, renderMalla } from './ui/views/carrera.js';
 import { renderRepaso } from './ui/views/repaso.js';
 import { MercadoService } from './services/DiaService.js';
 import { renderMercado } from './ui/views/mercado.js';
+import { MotivacionService } from './services/MotivacionService.js';
+import { renderLogros, avisarNuevos } from './ui/views/logros.js';
+import { renderAnio } from './ui/views/anio.js';
 import { montarBloqueo, bloqueo } from './core/bloqueo.js';
 import { nuevoMovimiento } from './ui/views/movimientos.js';
 import { formTurno } from './ui/views/trabajo.js';
@@ -63,6 +66,7 @@ const notificaciones = new NotificacionesService(repos, supabase);
 const passkeys = new PasskeyService(supabase);
 seccionesAjustes.unshift(seccionNotificaciones, seccionBloqueo, seccionPasskeys);
 const mercado = new MercadoService(repos, service);
+const motivacion = new MotivacionService(repos);
 seccionesAjustes.push(seccionReparto);
 
 // Para agregar un módulo nuevo basta con registrarlo aquí (abierto/cerrado).
@@ -89,6 +93,8 @@ const RUTAS = {
   metasvida: { titulo: 'Metas de vida', icono: '⭐', render: renderMetasVida, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Sueños grandes, paso a paso' },
   lectura: { titulo: 'Lectura y cursos', icono: '📖', render: renderLectura, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Libros y cursos', menu: 'Lectura' },
   contactos: { titulo: 'Personas', icono: '🎂', render: renderContactos, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Cumpleaños y contacto' },
+  logros: { titulo: 'Logros', icono: '🏅', render: renderLogros, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Medallas por tu constancia' },
+  anio: { titulo: 'Tu año en Rumbo', icono: '🎆', render: renderAnio, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Resumen de todo tu año', menu: 'Tu año' },
   revision: { titulo: 'Revisión semanal', icono: '🧭', render: renderRevision, tab: 'mas', grupo: 'Crecimiento', enMas: true, desc: 'Cierra la semana y planea', menu: 'Revisión' },
   finanzas: { titulo: 'Plata', icono: '💰', render: renderResumen, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas', menu: 'Resumen' },
   movimientos: { titulo: 'Movimientos', icono: '↕️', render: renderMovimientos, tab: 'finanzas', grupo: 'Plata', sub: 'finanzas' },
@@ -144,7 +150,7 @@ function construirShell() {
   return { layout, titulo, subnav, contenido, correo, estadoRed };
 }
 
-const ctxBase = () => ({ service, vida, plata, ...uni, bienestar, asistente, notificaciones, passkeys, mercado, irA, correo: sesion?.user.email, salir, abrirAsistente: () => abrirAsistente(asistente, mostrar) });
+const ctxBase = () => ({ service, vida, plata, ...uni, bienestar, asistente, notificaciones, passkeys, mercado, motivacion, irA, correo: sesion?.user.email, salir, abrirAsistente: () => abrirAsistente(asistente, mostrar) });
 
 // Atajos del ícono de la app (manifest "shortcuts"): abren la pantalla y su formulario.
 const ACCIONES = {
@@ -231,7 +237,10 @@ function aplicarSesion(nueva) {
     root.replaceChildren(shell.layout);
   }
   shell.correo.textContent = sesion.user.email;
-  if (cambioUsuario) { mostrar(); cargarTema(); sincronizarAhora(); if (bloqueo.activo()) bloquear(); }
+  if (cambioUsuario) {
+    mostrar(); cargarTema(); sincronizarAhora(); if (bloqueo.activo()) bloquear();
+    setTimeout(() => motivacion.logros().then(avisarNuevos).catch(() => {}), 6000);
+  }
 }
 
 window.addEventListener('hashchange', mostrar);

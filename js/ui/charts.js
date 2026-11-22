@@ -68,3 +68,34 @@ export function barrasHorizontales({ items, formato = String, color = 'var(--ser
       h('b', { class: 'hbar-val' }, formato(x.valor))), [[x.etiqueta, formato(x.valor)]]))),
   );
 }
+
+/**
+ * Línea simple de una serie (por ejemplo, el peso en el tiempo) en SVG,
+ * con puntos enfocables, tooltip y tabla de datos.
+ */
+export function lineaSimple({ puntos, formato = String, alto = 160, color = 'var(--series-1)' }) {
+  const W = 600;
+  const H = alto;
+  const pad = { t: 14, r: 14, b: 22, l: 14 };
+  const vals = puntos.map((p) => p.valor);
+  let min = Math.min(...vals);
+  let max = Math.max(...vals);
+  if (min === max) { min -= 1; max += 1; }
+  const x = (i) => pad.l + (puntos.length === 1 ? (W - pad.l - pad.r) / 2 : (i * (W - pad.l - pad.r)) / (puntos.length - 1));
+  const y = (v) => pad.t + (1 - (v - min) / (max - min)) * (H - pad.t - pad.b);
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'line-chart'); svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', `Desde ${formato(vals[0])} hasta ${formato(vals.at(-1))}`);
+  const el = (t, a) => { const e = document.createElementNS(ns, t); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); svg.append(e); return e; };
+  for (const v of [min, max]) el('line', { x1: pad.l, x2: W - pad.r, y1: y(v), y2: y(v), class: 'gridline-svg' });
+  el('polyline', { points: puntos.map((p, i) => `${x(i)},${y(p.valor)}`).join(' '), fill: 'none', stroke: color, 'stroke-width': 2.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke' });
+  puntos.forEach((p, i) => {
+    const c = el('circle', { cx: x(i), cy: y(p.valor), r: 5, fill: color, stroke: 'var(--surface)', 'stroke-width': 2, tabindex: 0, class: 'line-dot' });
+    conTip(c, [[p.etiqueta, formato(p.valor), color]]);
+  });
+  const ext = (v, i) => { const t = el('text', { x: i === 0 ? pad.l : W - pad.r, y: H - 4, class: 'line-label', 'text-anchor': i === 0 ? 'start' : 'end' }); t.textContent = v; };
+  ext(puntos[0].etiqueta, 0); ext(puntos.at(-1).etiqueta, 1);
+  return h('figure', { class: 'chart' }, svg,
+    tablaDatos(['Fecha', 'Valor'], puntos.map((p) => [p.etiqueta, formato(p.valor)])));
+}

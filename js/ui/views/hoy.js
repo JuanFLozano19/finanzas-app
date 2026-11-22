@@ -45,6 +45,10 @@ export async function renderHoy(cont, ctx) {
         h('div', {}, h('small', {}, 'Hábitos'), h('b', {}, `${hechos}/${habHoy.length}`)),
       )),
 
+    new Date().getMonth() === 11 ? h('button', { class: 'card banner', onclick: () => irA('anio') },
+      h('span', {}, '🎆'), h('span', { class: 'grow' }, h('strong', {}, `Tu ${new Date().getFullYear()} en Rumbo está listo`),
+        h('small', { class: 'muted' }, 'Horas trabajadas, tareas, plata, hábitos y más')), h('span', {}, '›')) : null,
+
     h('button', { class: 'assistant-bar', onclick: ctx.abrirAsistente }, h('span', {}, '✨'), h('span', { class: 'muted' }, 'Cuéntale a Rumbo: "gasté 15 mil en almuerzo"…')),
 
     avisos.length ? h('section', { class: 'card' }, h('h3', {}, 'Para tener en cuenta'),

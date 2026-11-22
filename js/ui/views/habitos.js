@@ -1,6 +1,8 @@
 import { h, fill, emptyState, formulario, toast, checkCircle, progressBar } from '../dom.js';
 import { today, addDays, weekday, fmtPct } from '../../core/format.js';
 import { tocaEnFecha } from '../../domain/vida.js';
+import { mapaHabitos } from '../../domain/motivacion.js';
+import { fmtDate as fmtD } from '../../core/format.js';
 
 const ICONOS = ['✅', '📚', '🏃', '💧', '🧘', '💪', '🛏️', '🍎', '✍️', '🎸', '💻', '🙏', '🚭', '🧹'];
 const LETRAS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
@@ -49,6 +51,20 @@ function tarjeta(vida, x, hoy, recargar) {
   );
 }
 
+function mapaAnual(items, hoy) {
+  const dias = mapaHabitos(items.filter((x) => x.activo), hoy);
+  // Alinea al lunes para que cada columna sea una semana
+  const relleno = (new Date(`${dias[0].fecha}T00:00:00`).getDay() + 6) % 7;
+  const celdas = [...Array(relleno).fill(null), ...dias];
+  const conDatos = dias.filter((d) => d.tocan);
+  const perfectos = dias.filter((d) => d.nivel === 4).length;
+  return h('section', { class: 'card' },
+    h('div', { class: 'card-head' }, h('h3', {}, 'Tu año en hábitos'), h('small', { class: 'muted' }, `${perfectos} días perfectos`)),
+    h('div', { class: 'heatmap-wrap' }, h('div', { class: 'heatmap', role: 'img', 'aria-label': `Últimos 12 meses: ${perfectos} días con todos los hábitos cumplidos de ${conDatos.length} días con hábitos.` },
+      celdas.map((d) => (d ? h('i', { class: `hm l${d.nivel ?? 'x'}`, title: d.tocan ? `${fmtD(d.fecha)}: ${d.hechos} de ${d.tocan}` : fmtD(d.fecha) }) : h('i', { class: 'hm empty' }))))),
+    h('div', { class: 'heatmap-legend' }, h('small', { class: 'muted' }, 'Menos'), [0, 1, 2, 3, 4].map((n) => h('i', { class: `hm l${n}` })), h('small', { class: 'muted' }, 'Más')));
+}
+
 export async function renderHabitos(cont, ctx) {
   const { vida } = ctx;
   const recargar = () => renderHabitos(cont, ctx);
@@ -65,6 +81,7 @@ export async function renderHabitos(cont, ctx) {
       progressBar(deHoy.length ? hechos / deHoy.length : 0, 'light'),
       h('small', {}, deHoy.length && hechos === deHoy.length ? '¡Día completo! 🎉' : 'Cada día cuenta.')),
     h('div', { class: 'action-row' }, h('button', { class: 'btn primary', onclick: () => formHabito(vida, null, recargar) }, '+ Nuevo hábito')),
+    items.length ? mapaAnual(items, hoy) : null,
     items.length ? null : emptyState('🌱', 'Sin hábitos todavía', 'Empieza con uno pequeño: leer 10 minutos o tomar agua.'),
     activos.map((x) => tarjeta(vida, x, hoy, recargar)),
     items.length > activos.length ? h('h4', { class: 'section-title' }, 'Pausados') : null,

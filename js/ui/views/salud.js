@@ -1,5 +1,6 @@
 import { h, fill, emptyState, formulario, toast } from '../dom.js';
-import { today, fmtDate } from '../../core/format.js';
+import { today, fmtDate, addDays } from '../../core/format.js';
+import { barrasAgrupadas, lineaSimple } from '../charts.js';
 
 const TIPOS = ['Gimnasio', 'Correr', 'Caminar', 'Fútbol', 'Bicicleta', 'Natación', 'Yoga', 'Ejercicio en casa', 'Baloncesto'];
 const INTENSIDAD = [[1, 'Suave'], [2, 'Moderada'], [3, 'Intensa']];
@@ -31,6 +32,21 @@ function formHoy(vida, reg, recargar) {
     ],
     onSubmit: async (d) => { await vida.salud.guardarRegistro({ fecha: reg.fecha, ...d }); toast('Registro guardado'); recargar(); },
   });
+}
+
+function graficas(registros, hoyIso) {
+  const corto = (f) => fmtDate(f).split(' de ').slice(0, 2).join(' ');
+  const dias = Array.from({ length: 14 }, (_, i) => addDays(hoyIso, i - 13));
+  const sueno = new Map(registros.filter((r) => r.horas_sueno != null).map((r) => [r.fecha, Number(r.horas_sueno)]));
+  const pesos = registros.filter((r) => r.peso_kg != null).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  return [
+    sueno.size ? h('section', { class: 'card' }, h('h3', {}, 'Sueño de las últimas 2 semanas'),
+      barrasAgrupadas({ etiquetas: dias.map((d) => d.slice(8, 10)), formato: (v) => `${v} h`, alto: 130,
+        series: [{ nombre: 'Horas de sueño', color: 'var(--series-1)', valores: dias.map((d) => sueno.get(d) || 0) }] }),
+      h('small', { class: 'muted' }, 'Lo recomendado para adultos jóvenes es dormir entre 7 y 9 horas.')) : null,
+    pesos.length >= 2 ? h('section', { class: 'card' }, h('h3', {}, 'Tu peso'),
+      lineaSimple({ puntos: pesos.map((p) => ({ etiqueta: corto(p.fecha), valor: Number(p.peso_kg) })), formato: (v) => `${v} kg` })) : null,
+  ];
 }
 
 export async function renderSalud(cont, ctx) {
@@ -68,6 +84,8 @@ export async function renderSalud(cont, ctx) {
         deltaPeso != null ? h('small', { class: 'muted' }, `${deltaPeso > 0 ? '+' : ''}${deltaPeso.toFixed(1)} kg vs. anterior`) : null),
       h('button', { class: 'stat stat-action', onclick: () => formHoy(vida, hoy, recargar) }, h('small', {}, 'Registro diario'), h('b', {}, '✏️ Sueño y peso')),
     ),
+
+    graficas(registros, hoy.fecha),
 
     h('div', { class: 'row-between' }, h('h3', {}, 'Entrenamientos'),
       h('button', { class: 'btn primary small', onclick: () => formEntreno(vida, null, recargar) }, '+ Entrenamiento')),

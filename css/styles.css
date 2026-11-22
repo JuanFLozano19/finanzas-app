@@ -752,3 +752,37 @@ a.btn { text-decoration: none; color: inherit; display: inline-flex; align-items
 @keyframes sacudir { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
 .add-bar .qty { flex: 0 0 84px; min-width: 0; }
 .add-bar .search { min-width: 0; }
+
+/* ===== Motivación ===== */
+.heatmap-wrap { overflow-x: auto; padding-bottom: 4px; direction: rtl; }
+.heatmap { direction: ltr; display: grid; grid-template-rows: repeat(7, 11px); grid-auto-flow: column; grid-auto-columns: 11px; gap: 3px; width: max-content; }
+.hm { width: 11px; height: 11px; border-radius: 3px; display: block; }
+.hm.empty { visibility: hidden; }
+.hm.lx { background: transparent; box-shadow: inset 0 0 0 1px var(--border); }
+.hm.l0 { background: var(--surface-2); }
+.hm.l1 { background: color-mix(in srgb, var(--brand) 28%, var(--surface-2)); }
+.hm.l2 { background: color-mix(in srgb, var(--brand) 52%, var(--surface-2)); }
+.hm.l3 { background: color-mix(in srgb, var(--brand) 76%, var(--surface-2)); }
+.hm.l4 { background: var(--brand); }
+.heatmap-legend { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.badge-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.badge-card:not(.got) .badge-icon { filter: grayscale(1); opacity: .45; }
+.badge-card.got { border-color: color-mix(in srgb, var(--aguja) 45%, var(--border)); }
+.badge-icon { font-size: 2rem; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: var(--surface-2); }
+.badge-card.got .badge-icon { background: color-mix(in srgb, var(--aguja) 16%, var(--surface)); }
+.year-hero .round-btn:disabled { opacity: .3; }
+.year-big { font-family: var(--font-display); font-size: 3.4rem; font-weight: 800; letter-spacing: -.04em; line-height: 1; margin: 6px 0; }
+.year-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.year-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.year-card strong, .year-card .money { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
+.year-card p { margin: 0; color: var(--muted); font-weight: 600; }
+.year-icon { font-size: 1.4rem; }
+.line-chart { width: 100%; height: auto; overflow: visible; }
+.gridline-svg { stroke: var(--border); stroke-dasharray: 4 4; }
+.line-dot { cursor: pointer; outline: none; }
+.line-dot:focus-visible { stroke: var(--text); }
+.line-label { fill: var(--muted); font-size: 12px; font-family: inherit; }
+.hm.lx { background: color-mix(in srgb, var(--surface-2) 45%, transparent); box-shadow: none; }
+.year-hero::after { display: none; }
+.year-hero { padding-right: 22px; }
