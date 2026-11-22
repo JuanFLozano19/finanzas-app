@@ -1,7 +1,9 @@
 // Trabajo: solo turnos (cuándo, a qué hora y de qué tipo). Sin pagos ni tarifas.
 // Los recordatorios llegan por notificación: X minutos antes y la noche anterior.
-import { h, fill, emptyState, formulario, toast } from '../dom.js';
-import { today, addDays, fmtDayLong, fmtTime, fmtDate, DIAS_CORTOS, weekday } from '../../core/format.js';
+import { h, fill, emptyState, formulario, toast, confirmar } from '../dom.js';
+import { SUPABASE_URL } from '../../config.js';
+import { generarInforme } from '../informe.js';
+import { today, addDays, fmtDayLong, fmtTime, fmtDate, DIAS_CORTOS, weekday, currentMonth } from '../../core/format.js';
 import { duracionHoras } from '../../domain/vida.js';
 
 const SUGERENCIAS = ['Grabación de robots', 'Turno de mañana', 'Turno de tarde', 'Turno de noche', 'Capacitación', 'Reunión'];
@@ -66,11 +68,84 @@ function filaTurno(abrir, { fecha, evento: e }) {
         e.lugar ? h('span', { class: 'pill' }, `📍 ${e.lugar}`) : null))));
 }
 
+// ---------- Compartir y exportar ----------
+const urlCalendario = (t) => `${SUPABASE_URL}/functions/v1/calendario?t=${t}`;
+const urlCompartido = (t) => new URL(`compartido.html?t=${t}`, location.href.split('#')[0]).href;
+
+async function copiar(texto, ok = 'Enlace copiado') {
+  try { await navigator.clipboard.writeText(texto); toast(ok); } catch { toast('No se pudo copiar; mantén presionado el enlace para copiarlo', 'error'); }
+}
+
+function formInforme(trabajo, nombre) {
+  formulario({
+    titulo: 'Informe de actividades', enviar: 'Descargar PDF',
+    valores: { ym: currentMonth(), nombre },
+    campos: [
+      { name: 'ym', label: 'Mes', type: 'month', required: true },
+      { name: 'nombre', label: 'Tu nombre completo', required: true },
+      { name: 'cargo', label: 'Cargo u objeto del contrato (opcional)', placeholder: 'Ej: Apoyo en grabación y registro de pruebas de robots' },
+      { name: 'dirigido', label: 'Dirigido a (opcional)', placeholder: 'Ej: Coordinación del laboratorio' },
+    ],
+    onSubmit: async (d) => {
+      const datos = await trabajo.informe(d.ym);
+      if (!datos.totalTurnos) throw new Error('No tienes turnos registrados en ese mes.');
+      if (d.nombre !== nombre) await trabajo.guardarNombre(d.nombre);
+      const archivo = await generarInforme({ ...datos, ...d });
+      toast(`📄 ${archivo} descargado`);
+    },
+  });
+}
+
+async function seccionCompartir(trabajo, recargar) {
+  const e = await trabajo.enlaces();
+  const accion = (fn, msg) => async (ev) => {
+    const b = ev.currentTarget; b.disabled = true;
+    try { await fn(); if (msg) toast(msg); recargar(); } catch (err) { toast(err.message, 'error'); b.disabled = false; }
+  };
+  const enlace = (url) => h('div', { class: 'link-box' }, h('code', {}, url), h('button', { class: 'btn ghost small', onclick: () => copiar(url) }, 'Copiar'));
+  const ical = e.ical ? urlCalendario(e.ical) : null;
+  const comp = e.compartir ? urlCompartido(e.compartir) : null;
+  return h('section', { class: 'share-grid' },
+    h('article', { class: 'card' },
+      h('h3', {}, '📄 Informe de actividades'),
+      h('p', { class: 'muted' }, 'Un PDF con tus turnos del mes: fechas, horarios, horas, tipo de turno y lo que hiciste. Listo para enviar.'),
+      h('button', { class: 'btn primary', onclick: () => formInforme(trabajo, e.nombre) }, 'Crear informe')),
+    h('article', { class: 'card' },
+      h('h3', {}, '📅 Ver en Google Calendar'),
+      ical ? [
+        h('p', { class: 'muted' }, 'En Google Calendar (en el computador): "Otros calendarios" → "+" → "Desde URL" y pega este enlace. Se actualiza solo.'),
+        enlace(ical),
+        h('div', { class: 'card-actions' },
+          h('a', { class: 'btn ghost', href: ical.replace(/^https:/, 'webcal:') }, 'Abrir en el celular'),
+          h('button', { class: 'btn ghost', onclick: async (ev) => {
+            if (await confirmar('¿Desconectar? Los calendarios que usen este enlace dejarán de actualizarse.', { aceptar: 'Desconectar' })) await accion(() => trabajo.revocarToken('ical_token'), 'Calendario desconectado')(ev);
+          } }, 'Desconectar')),
+      ] : [
+        h('p', { class: 'muted' }, 'Tus turnos, clases y eventos aparecen en Google Calendar (y en cualquier app de calendario) y se actualizan solos.'),
+        h('button', { class: 'btn primary', onclick: accion(() => trabajo.nuevoToken('ical_token'), 'Enlace de calendario creado') }, 'Crear enlace de calendario'),
+      ]),
+    h('article', { class: 'card' },
+      h('h3', {}, '🔗 Compartir mi horario'),
+      comp ? [
+        h('p', { class: 'muted' }, 'Quien tenga este enlace ve solo tus turnos de las próximas 3 semanas. Nada más de la app.'),
+        enlace(comp),
+        h('div', { class: 'card-actions' },
+          h('a', { class: 'btn ghost', href: `https://wa.me/?text=${encodeURIComponent(`Mi horario de turnos: ${comp}`)}`, target: '_blank', rel: 'noopener' }, 'Enviar por WhatsApp'),
+          h('button', { class: 'btn ghost', onclick: async (ev) => {
+            if (await confirmar('¿Dejar de compartir? El enlace actual dejará de funcionar.', { aceptar: 'Dejar de compartir' })) await accion(() => trabajo.revocarToken('compartir_token'), 'Ya no se comparte tu horario')(ev);
+          } }, 'Dejar de compartir')),
+      ] : [
+        h('p', { class: 'muted' }, 'Crea un enlace de solo lectura para tu familia o tu jefe con tus próximos turnos.'),
+        h('button', { class: 'btn primary', onclick: accion(() => trabajo.nuevoToken('compartir_token'), 'Enlace para compartir creado') }, 'Crear enlace para compartir'),
+      ]),
+  );
+}
+
 export async function renderTrabajo(cont, ctx) {
   const { vida, irA } = ctx;
   const trabajo = vida.trabajo;
   const recargar = () => renderTrabajo(cont, ctx);
-  const d = await trabajo.datos();
+  const [d, compartir] = await Promise.all([trabajo.datos(), seccionCompartir(trabajo, () => renderTrabajo(cont, ctx))]);
   const abrir = (e) => formTurno(trabajo, e, d.tipos, recargar);
   const p = d.proximo;
 
@@ -112,5 +187,8 @@ export async function renderTrabajo(cont, ctx) {
         h('span', { class: 'shift-time' }, h('b', {}, DIAS_CORTOS[weekday(e.fecha)]), h('small', {}, fmtTime(e.hora_inicio))),
         h('span', { class: 'shift-body' }, h('strong', {}, e.titulo),
           h('small', { class: 'muted' }, `${rango(e)}, desde el ${fmtDate(e.fecha)}${e.fecha_fin ? ` hasta el ${fmtDate(e.fecha_fin)}` : ''}`))))))) : null,
+
+    h('h4', { class: 'section-title' }, 'Compartir y exportar'),
+    compartir,
   );
 }

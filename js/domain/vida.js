@@ -189,4 +189,18 @@ export function proximoTurno(eventos, ahora, dias = 30) {
   return null;
 }
 
+/** Filas del informe mensual de actividades a partir de los turnos. */
+export function informeMes(turnos, ym) {
+  const [y, m] = ym.split('-').map(Number);
+  const ultimo = new Date(y, m, 0).getDate();
+  const filas = instancias(turnos, `${ym}-01`, `${ym}-${String(ultimo).padStart(2, '0')}`)
+    .filter((i) => i.evento.hora_inicio)
+    .map(({ fecha, evento: e }) => ({
+      fecha, inicio: e.hora_inicio.slice(0, 5), fin: e.hora_fin ? e.hora_fin.slice(0, 5) : '',
+      horas: round2(duracionHoras(e)), tipo: e.titulo, descripcion: e.notas || '',
+    }))
+    .sort((a, b) => (a.fecha + a.inicio).localeCompare(b.fecha + b.inicio));
+  return { filas, totalHoras: round2(filas.reduce((a, f) => a + f.horas, 0)), totalTurnos: filas.length, dias: new Set(filas.map((f) => f.fecha)).size };
+}
+
 function round2(x) { return Math.round(x * 100) / 100; }

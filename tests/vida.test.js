@@ -154,3 +154,17 @@ test('próximo turno: en curso y siguiente', () => {
   const noche = proximoTurno([{ id: 'n', fecha: '2026-11-22', semanal: false, hora_inicio: '22:00', hora_fin: '06:00' }], new Date('2026-11-23T02:00:00'));
   assert.equal(noche.enCurso, true);
 });
+
+import { informeMes } from '../js/domain/vida.js';
+
+test('informe mensual de turnos', () => {
+  const r = informeMes([
+    { id: 'a', fecha: '2026-11-02', semanal: true, hora_inicio: '08:00:00', hora_fin: '12:00:00', titulo: 'Grabación', notas: 'Robots' },
+    { id: 'b', fecha: '2026-11-15', semanal: false, hora_inicio: '22:00:00', hora_fin: '06:00:00', titulo: 'Noche', notas: null },
+    { id: 'c', fecha: '2026-12-01', semanal: false, hora_inicio: '08:00:00', hora_fin: '10:00:00', titulo: 'Fuera', notas: null },
+  ], '2026-11');
+  assert.equal(r.totalTurnos, 6); // 5 lunes (2, 9, 16, 23, 30) + 1 noche
+  assert.equal(r.totalHoras, 28);
+  assert.equal(r.filas[0].fecha, '2026-11-02');
+  assert.equal(r.filas.find((f) => f.tipo === 'Noche').horas, 8);
+});

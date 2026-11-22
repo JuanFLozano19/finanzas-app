@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Horario de turnos · Rumbo</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#13203d">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .wrap { max-width: 640px; margin: 0 auto; padding: 20px 16px 48px; display: flex; flex-direction: column; gap: 16px; }
+    .pie { text-align: center; color: var(--muted); font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <main class="wrap" id="raiz"><div class="loader"><span></span><span></span><span></span></div></main>
+  <script type="module">
+    // Página pública de solo lectura: muestra los turnos de las próximas 3 semanas.
+    import { SUPABASE_URL } from './js/config.js';
+    import { h } from './js/ui/dom.js';
+    import { fmtDayLong, fmtTime, today, addDays } from './js/core/format.js';
+
+    const raiz = document.getElementById('raiz');
+    const token = new URLSearchParams(location.search).get('t');
+    const cuando = (f) => (f === today() ? 'Hoy' : f === addDays(today(), 1) ? 'Mañana' : fmtDayLong(f));
+    const horas = (n) => (Number.isInteger(n) ? `${n} h` : `${String(n).replace('.', ',')} h`);
+
+    function error(msg) {
+      raiz.replaceChildren(h('div', { class: 'empty' }, h('div', { class: 'empty-icon' }, '🔒'), h('strong', {}, 'No se puede mostrar el horario'), h('p', {}, msg)));
+    }
+
+    try {
+      if (!token) throw new Error('El enlace está incompleto. Pide que te lo vuelvan a enviar.');
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/calendario?t=${encodeURIComponent(token)}&f=compartido`);
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || 'Este enlace ya no está activo.');
+      const titulo = d.nombre ? `Turnos de ${d.nombre}` : 'Horario de turnos';
+      document.title = `${titulo} · Rumbo`;
+      const porDia = new Map();
+      for (const t of d.turnos) { if (!porDia.has(t.fecha)) porDia.set(t.fecha, []); porDia.get(t.fecha).push(t); }
+      const total = d.turnos.reduce((a, t) => a + t.horas, 0);
+      raiz.replaceChildren(
+        h('section', { class: 'shift-hero' },
+          h('span', { class: 'shift-hero-when' }, 'Próximas 3 semanas'),
+          h('strong', { class: 'shift-hero-time' }, titulo),
+          h('span', { class: 'shift-hero-count' }, `${d.turnos.length} turno${d.turnos.length === 1 ? '' : 's'} · ${horas(Math.round(total * 10) / 10)}`)),
+        porDia.size ? h('section', { class: 'shift-days' }, [...porDia.entries()].map(([fecha, items]) => h('div', { class: 'shift-day' },
+          h('h4', { class: `day-title ${fecha === today() ? 'is-today' : ''}` }, cuando(fecha)),
+          h('ul', { class: 'shifts' }, items.map((t) => h('li', {}, h('div', { class: 'shift' },
+            h('span', { class: 'shift-time' }, h('b', {}, fmtTime(t.inicio)), h('small', {}, t.fin ? fmtTime(t.fin) : '')),
+            h('span', { class: 'shift-body' }, h('strong', {}, t.tipo), h('span', { class: 'task-meta' }, h('span', { class: 'pill' }, horas(t.horas)))))))))))
+          : h('div', { class: 'empty' }, h('div', { class: 'empty-icon' }, '🗓'), h('strong', {}, 'Sin turnos en las próximas 3 semanas')),
+        h('p', { class: 'pie' }, 'Horario de solo lectura compartido desde Rumbo 🧭'),
+      );
+    } catch (e) { error(e.message); }
+  </script>
+</body>
+</html>

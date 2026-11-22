@@ -693,3 +693,10 @@ h3 { font-weight: 650; letter-spacing: -.01em; }
 :root[data-theme="oscuro"] { --brand-ink: #0a1020; }
 .btn.primary { color: var(--brand-ink); }
 .check-circle.on { color: var(--brand-ink); }
+
+/* ===== Compartir y exportar ===== */
+.share-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.share-grid .card { gap: 10px; }
+.link-box { display: flex; gap: 8px; align-items: center; background: var(--surface-2); border-radius: 12px; padding: 8px 8px 8px 12px; }
+.link-box code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .78rem; color: var(--muted); }
+a.btn { text-decoration: none; color: inherit; display: inline-flex; align-items: center; justify-content: center; }

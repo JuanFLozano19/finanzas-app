@@ -3,7 +3,7 @@
 import { today, addDays, startOfWeek, monthRange } from '../core/format.js';
 import {
   racha, cumplimiento, tocaEnFecha, eventosDelDia, agruparTareas,
-  estadoMateria, promedioSemestre, resumenSemanaSalud, instancias, horasTurnos, proximoTurno,
+  estadoMateria, promedioSemestre, resumenSemanaSalud, instancias, horasTurnos, proximoTurno, informeMes,
 } from '../domain/vida.js';
 
 /** CRUD genérico reutilizable para servicios simples. */
@@ -95,7 +95,7 @@ export class UniversidadService {
 
 /** Turnos de trabajo: se guardan como eventos de tipo "trabajo" (salen también en la Agenda). */
 export class TurnosService {
-  constructor(repos) { this.repo = repos.eventos; }
+  constructor(repos) { this.repo = repos.eventos; this.ajustes = repos.ajustes; }
   async datos(ahora = new Date()) {
     const hoy = today();
     const turnos = await this.repo.list({ orderBy: 'fecha', ascending: true, filters: [['tipo', 'eq', 'trabajo']] });
@@ -115,6 +115,20 @@ export class TurnosService {
   }
   guardar(id, d) { const datos = { ...d, tipo: 'trabajo' }; return id ? this.repo.update(id, datos) : this.repo.create(datos); }
   eliminar(id) { return this.repo.remove(id); }
+
+  // ---- Informe, calendario y horario compartido ----
+  async informe(ym) {
+    const [turnos, aj] = await Promise.all([
+      this.repo.list({ orderBy: 'fecha', ascending: true, filters: [['tipo', 'eq', 'trabajo']] }),
+      this.ajustes.findOne([], 'updated_at'),
+    ]);
+    return { ...informeMes(turnos, ym), nombre: aj?.nombre || '' };
+  }
+  guardarNombre(nombre) { return this.ajustes.upsert({ nombre }, 'user_id'); }
+  async enlaces() { const aj = await this.ajustes.findOne([], 'updated_at'); return { ical: aj?.ical_token || null, compartir: aj?.compartir_token || null, nombre: aj?.nombre || '' }; }
+  /** Crea (o renueva, invalidando el anterior) el token del calendario o del horario compartido. */
+  nuevoToken(campo) { return this.ajustes.upsert({ [campo]: crypto.randomUUID() }, 'user_id'); }
+  revocarToken(campo) { return this.ajustes.upsert({ [campo]: null }, 'user_id'); }
 }
 
 export class SaludService {
