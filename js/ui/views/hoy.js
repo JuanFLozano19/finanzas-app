@@ -9,6 +9,25 @@ function saludo() {
   return 'Buenas noches';
 }
 
+/** Agenda del día con una marca de "ahora" y lo ya pasado atenuado. */
+function lineaDeTiempo(eventos, item) {
+  const ahora = new Date().toTimeString().slice(0, 5);
+  const fin = (e) => e.hora_fin?.slice(0, 5) || e.hora_inicio?.slice(0, 5) || '23:59';
+  const out = [];
+  let marcado = false;
+  for (const e of eventos) {
+    if (!marcado && e.hora_inicio && e.hora_inicio.slice(0, 5) > ahora) {
+      out.push(h('li', { class: 'now-line', 'aria-label': `Ahora, ${ahora}` }, h('span', {}, 'Ahora')));
+      marcado = true;
+    }
+    const li = item(e);
+    if (e.hora_inicio && fin(e) < ahora && fin(e) > e.hora_inicio.slice(0, 5)) li.classList.add('is-past');
+    out.push(li);
+  }
+  if (!marcado) out.push(h('li', { class: 'now-line' }, h('span', {}, 'Ahora')));
+  return out;
+}
+
 export async function renderHoy(cont, ctx) {
   const { service, vida, plata, bienestar, irA } = ctx;
   const recargar = () => renderHoy(cont, ctx);
@@ -80,7 +99,7 @@ export async function renderHoy(cont, ctx) {
     h('section', { class: 'card' },
       h('div', { class: 'card-head' }, h('h3', {}, 'Agenda de hoy'),
         h('button', { class: 'link', onclick: () => formEvento(vida, null, materias, recargar, { fecha: hoy }) }, '+ Agregar')),
-      eventos.length ? h('ul', { class: 'events' }, eventos.map((e) => eventoItem(vida, e, materias, recargar)))
+      eventos.length ? h('ul', { class: 'events timeline' }, lineaDeTiempo(eventos, (e) => eventoItem(vida, e, materias, recargar)))
         : h('p', { class: 'muted' }, 'Nada agendado para hoy.')),
 
     h('section', { class: 'card' },

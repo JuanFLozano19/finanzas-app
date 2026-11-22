@@ -179,10 +179,14 @@ async function mostrar() {
   shell.subnav.replaceChildren(...(r.sub
     ? [tabs(SUBTABS[r.sub].map((id) => [id, RUTAS[id].menu || RUTAS[id].titulo]), ruta, irA)] : []));
   shell.subnav.querySelector('.tab.active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
-  shell.contenido.replaceChildren(h('div', { class: 'loader' }, h('span'), h('span'), h('span')));
+  shell.contenido.replaceChildren(h('div', { class: 'skeleton', 'aria-busy': 'true', 'aria-label': 'Cargando' },
+    h('div', { class: 'sk sk-hero' }), h('div', { class: 'sk-row' }, h('div', { class: 'sk sk-stat' }), h('div', { class: 'sk sk-stat' }), h('div', { class: 'sk sk-stat' })),
+    h('div', { class: 'sk sk-card' }), h('div', { class: 'sk sk-card short' })));
+  shell.contenido.classList.remove('entra');
   window.scrollTo({ top: 0 });
   try {
     await r.render(shell.contenido, ctxBase());
+    void shell.contenido.offsetWidth; shell.contenido.classList.add('entra');
   } catch (e) {
     console.error(e);
     const offline = !navigator.onLine;

@@ -786,3 +786,51 @@ a.btn { text-decoration: none; color: inherit; display: inline-flex; align-items
 .hm.lx { background: color-mix(in srgb, var(--surface-2) 45%, transparent); box-shadow: none; }
 .year-hero::after { display: none; }
 .year-hero { padding-right: 22px; }
+
+/* =========================================================
+   Pulido de interfaz
+   ========================================================= */
+/* Sin mayúsculas sostenidas: etiquetas en tipo oración */
+.nav-group, .day-title, .group-title { text-transform: none; letter-spacing: 0; }
+.nav-group { font-size: .78rem; }
+.day-title, .group-title { font-size: .9rem; font-weight: 700; color: var(--muted); }
+.section-title { font-size: .95rem; font-weight: 700; margin-top: 6px; }
+
+/* Más: secciones con lista */
+.more-group { display: flex; flex-direction: column; gap: 8px; }
+.more-list .list-item { padding: 12px 14px; }
+.more-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 1.2rem; background: var(--surface-2); flex-shrink: 0; }
+
+/* Esqueleto de carga */
+.skeleton { display: flex; flex-direction: column; gap: 12px; }
+.sk { border-radius: 18px; background: linear-gradient(90deg, var(--surface-2) 0%, color-mix(in srgb, var(--surface-2) 40%, var(--surface)) 50%, var(--surface-2) 100%); background-size: 200% 100%; animation: brillo 1.2s infinite linear; }
+.sk-hero { height: 150px; border-radius: 24px; }
+.sk-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.sk-stat { height: 70px; }
+.sk-card { height: 160px; }
+.sk-card.short { height: 90px; }
+@keyframes brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Transición suave al cambiar de pantalla */
+.content.entra { animation: aparecer .22s ease-out; }
+@keyframes aparecer { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Formularios largos: botones siempre visibles */
+dialog.sheet { display: flex; flex-direction: column; }
+dialog.sheet[open] { display: flex; }
+dialog.sheet > .sheet-body { overflow-y: auto; }
+.sheet-body > .sheet-actions { position: sticky; bottom: -20px; margin: 4px -20px -20px; padding: 12px 20px calc(16px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border); z-index: 1; }
+.sheet-head { position: sticky; top: -20px; margin: -20px -20px 0; padding: 18px 20px 10px; background: var(--surface); z-index: 1; }
+
+/* Línea de tiempo de Hoy */
+.timeline .is-past { opacity: .5; }
+.now-line { display: flex; align-items: center; gap: 8px; color: var(--aguja); font-size: .78rem; font-weight: 800; }
+.now-line::after { content: ''; flex: 1; height: 2px; background: var(--aguja); border-radius: 2px; }
+.now-line::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--aguja); }
+
+/* Detalles: foco visible y objetivos táctiles cómodos */
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.list-item, .chip, .tab, .btn { min-height: 40px; }
+.card-head h3 { font-size: 1.02rem; }
+.topbar { padding-top: 12px; }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } .content.entra { animation: none; } }

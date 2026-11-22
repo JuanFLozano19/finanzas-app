@@ -1,11 +1,18 @@
 import { h, fill } from '../dom.js';
 
+const ORDEN = ['Mi día', 'Universidad', 'Áreas', 'Crecimiento', 'Rumbo'];
+
 export function crearVistaMas(rutas) {
   return async function renderMas(cont, { irA, correo }) {
-    const modulos = Object.entries(rutas).filter(([, r]) => r.enMas);
+    const grupos = new Map(ORDEN.map((g) => [g, []]));
+    for (const [id, r] of Object.entries(rutas)) if (r.enMas) (grupos.get(r.grupo) || grupos.set(r.grupo, []).get(r.grupo)).push([id, r]);
     fill(cont,
-      h('div', { class: 'tiles' }, modulos.map(([id, r]) => h('button', { class: 'tile', onclick: () => irA(id) },
-        h('span', { class: 'tile-icon' }, r.icono), h('strong', {}, r.titulo), h('small', { class: 'muted' }, r.desc)))),
+      [...grupos.entries()].filter(([, items]) => items.length).map(([g, items]) => h('section', { class: 'more-group' },
+        h('h4', { class: 'section-title' }, g),
+        h('ul', { class: 'list more-list' }, items.map(([id, r]) => h('li', {}, h('button', { class: 'list-item', onclick: () => irA(id) },
+          h('span', { class: 'more-icon', 'aria-hidden': 'true' }, r.icono),
+          h('span', { class: 'grow' }, h('strong', {}, r.titulo), h('small', { class: 'muted' }, r.desc)),
+          h('span', { class: 'muted', 'aria-hidden': 'true' }, '›'))))))),
       h('p', { class: 'muted center' }, h('span', { class: 'user-mail' }, correo)),
     );
   };

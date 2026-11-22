@@ -11,6 +11,7 @@ App web instalable (PWA) para gestionar tu vida desde el celular y el PC: **agen
 - **Tareas:** prioridad, fecha y materia, agrupadas en vencidas, hoy, próximas y sin fecha.
 - **Hábitos:** días de la semana, rachas y % de cumplimiento.
 - **Rutinas:** listas de mañana y de noche que se reinician cada día.
+- **Lista de mercado:** se comparte por WhatsApp y, al terminar la compra, registra el gasto.
 - **Diario y notas:** notas con búsqueda y fijado, y diario con estado de ánimo.
 
 **Universidad**
@@ -19,13 +20,21 @@ App web instalable (PWA) para gestionar tu vida desde el celular y el PC: **agen
 - **Apuntes:** texto, enlaces y archivos (PDF, fotos) por materia, guardados en un Storage privado.
 - **Trabajos en grupo:** integrantes, partes con responsable y avance. Tus partes aparecen en Tareas.
 - **Pomodoro:** temporizador por materia que registra tus horas de estudio.
+- **Mi carrera:** promedio acumulado (PAPA) ponderado por créditos, créditos aprobados y avance de la carrera.
+- **Malla curricular:** materias por semestre como aprobadas, cursando, pendientes o perdidas.
+- **Plan de repaso:** reparte sesiones de estudio en tus huecos libres antes de una evaluación, sin chocar con clases ni turnos.
+- **Tarjetas de repaso:** flashcards con repetición espaciada (sistema Leitner).
 
 **Áreas**
 - **Turnos de trabajo:** tipo de turno, descripción, hora de entrada y salida (incluye turnos de noche), turnos fijos semanales y horas por semana y mes. Avisa antes de cada turno (15 min a 2 h) y la noche anterior.
+  - 📄 **Informe de actividades en PDF** del mes, listo para enviar.
+  - 📅 **Calendario iCal** para Google Calendar u otra app, servido por la Edge Function `calendario` con un enlace revocable.
+  - 🔗 **Horario compartido** de solo lectura (`compartido.html`), también con un enlace revocable.
 - **Salud:** agua, sueño, peso y entrenamientos con resumen semanal.
 
 **Crecimiento**
 - **Metas de vida** por pasos, **lectura y cursos**, **personas** (cumpleaños, WhatsApp y recordatorio de contacto) y **revisión semanal**.
+- **Logros** (16 medallas calculadas a partir de tus datos), **mapa anual de hábitos**, gráficas de **sueño y peso**, y **Tu año en Rumbo**.
 
 **Plata**
 - Resumen, movimientos (al registrar un ingreso propone repartirlo en tus metas), **cuentas y bolsillos**, **presupuestos** con alerta al 80%, **pagos fijos**, deudas, **préstamos** (lo que te deben), metas de ahorro, **lista de deseos** con historial de precios y regla de 30 días, **¿me lo puedo permitir?** y **estadísticas**.
@@ -36,6 +45,9 @@ App web instalable (PWA) para gestionar tu vida desde el celular y el PC: **agen
 - 🔐 **Inicio con huella o rostro** (passkeys de Supabase, experimental).
 - 📡 **Sin internet:** lecturas desde caché y cola de cambios que se sube sola al volver la conexión.
 - 🎨 Tema claro/oscuro/automático y color de acento. 📤 Exportar todo a Excel.
+- ⚡ **Atajos en el ícono** (nuevo gasto, nuevo turno, nueva tarea, asistente).
+- 🔒 **Bloqueo local con PIN o huella** (WebAuthn de plataforma), que se activa al volver a la app.
+- 💧 **Recordatorio de agua** cada 2 horas si vas atrasado con tu meta.
 
 ## Diseño
 
@@ -53,6 +65,8 @@ js/
 │   ├── plata.js             Cuentas, presupuestos, fijos, deseos, reparto, permitirme
 │   ├── vida.js              Hábitos, agenda, tareas, universidad, horas, salud
 │   ├── bienestar.js         Cumpleaños, contactos, lectura, metas de vida
+│   ├── carrera.js           PAPA, malla, plan de repaso, Leitner
+│   ├── motivacion.js        Mapa de hábitos, mejor racha, logros, resumen anual
 │   └── asistente.js         Intérprete de frases en español colombiano
 ├── data/
 │   ├── repositories.js      Patrón Repository sobre Supabase
@@ -64,7 +78,8 @@ js/
     ├── components.js        Componentes compartidos
     ├── charts.js            Gráficas HTML accesibles (leyenda, tooltip, tabla)
     └── views/               Una pantalla por módulo
-supabase/functions/notificar Edge Function de recordatorios push
+supabase/functions/notificar   Edge Function de recordatorios push (cron cada 15 min)
+supabase/functions/calendario  Edge Function pública con token: iCal y horario compartido
 ```
 
 | Principio SOLID | Dónde se aplica |
@@ -77,15 +92,15 @@ supabase/functions/notificar Edge Function de recordatorios push
 
 ## Seguridad
 
-- **RLS** en las 34 tablas: cada usuario solo lee y escribe lo suyo. Además hay políticas *restrictivas* que impiden referenciar registros de otro usuario.
+- **RLS** en las 36 tablas: cada usuario solo lee y escribe lo suyo. Además hay políticas *restrictivas* que impiden referenciar registros de otro usuario.
 - Los secretos (VAPID y cron) están en **Supabase Vault**. Solo la Edge Function los lee, mediante una función `security definer` limitada a `service_role`.
 - Archivos en un bucket **privado** con carpeta por usuario y enlaces firmados de 2 minutos.
 - El texto se inserta como `textNode`, sin `innerHTML`, para evitar XSS.
 
 ## Calidad
 
-- **47 pruebas unitarias** del dominio, la cola sin conexión y el asistente: `npm test`.
-- Pruebas visuales de humo (Playwright) en las 30 pantallas, en celular y escritorio.
+- **57 pruebas unitarias** del dominio, la cola sin conexión y el asistente: `npm test`.
+- Pruebas visuales de humo (Playwright) en las 36 pantallas, en celular y escritorio.
 - Asesores de Supabase revisados (seguridad y rendimiento).
 - Accesibilidad: roles ARIA, foco visible, gráficas con tabla de datos y soporte de `prefers-reduced-motion`.
 
