@@ -107,11 +107,11 @@ async function seccionCompartir(trabajo, recargar) {
   const comp = e.compartir ? urlCompartido(e.compartir) : null;
   return h('section', { class: 'share-grid' },
     h('article', { class: 'card' },
-      h('h3', {}, '📄 Informe de actividades'),
+      h('h3', {}, 'Informe de actividades'),
       h('p', { class: 'muted' }, 'Un PDF con tus turnos del mes: fechas, horarios, horas, tipo de turno y lo que hiciste. Listo para enviar.'),
       h('button', { class: 'btn primary', onclick: () => formInforme(trabajo, e.nombre) }, 'Crear informe')),
     h('article', { class: 'card' },
-      h('h3', {}, '📅 Ver en Google Calendar'),
+      h('h3', {}, 'Ver en Google Calendar'),
       ical ? [
         h('p', { class: 'muted' }, 'En Google Calendar (en el computador): "Otros calendarios" → "+" → "Desde URL" y pega este enlace. Se actualiza solo.'),
         enlace(ical),
@@ -125,7 +125,7 @@ async function seccionCompartir(trabajo, recargar) {
         h('button', { class: 'btn primary', onclick: accion(() => trabajo.nuevoToken('ical_token'), 'Enlace de calendario creado') }, 'Crear enlace de calendario'),
       ]),
     h('article', { class: 'card' },
-      h('h3', {}, '🔗 Compartir mi horario'),
+      h('h3', {}, 'Compartir mi horario'),
       comp ? [
         h('p', { class: 'muted' }, 'Quien tenga este enlace ve solo tus turnos de las próximas 3 semanas. Nada más de la app.'),
         enlace(comp),

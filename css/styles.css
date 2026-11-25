@@ -834,3 +834,73 @@ dialog.sheet > .sheet-body { overflow-y: auto; }
 .card-head h3 { font-size: 1.02rem; }
 .topbar { padding-top: 12px; }
 @media (prefers-reduced-motion: reduce) { .sk { animation: none; } .content.entra { animation: none; } }
+
+/* ===== Pasada de interfaz 3: íconos propios, botón Agregar y tablero en PC ===== */
+.tono-task { --tono: var(--task); } .tono-uni { --tono: var(--uni); } .tono-work { --tono: var(--work); }
+.tono-meta { --tono: var(--meta); } .tono-health { --tono: var(--health); } .tono-pos { --tono: var(--pos); }
+.tono-neg { --tono: var(--neg); } .tono-brand { --tono: var(--brand); } .tono-neutral { --tono: var(--muted); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="claro"]) { --task: #6b9bff; --uni: #a98bff; --work: #3fb6cc; --health: #ff6b8a; } }
+:root[data-theme="oscuro"] { --task: #6b9bff; --uni: #a98bff; --work: #3fb6cc; --health: #ff6b8a; }
+
+.ico { display: block; flex-shrink: 0; }
+
+/* Barra inferior con íconos de línea */
+.bottom-nav .nav-icon { filter: none; opacity: 1; color: var(--muted); }
+.bottom-nav a.active .nav-icon { color: var(--brand); }
+.bottom-nav a.active .nav-icon .ico { stroke-width: 2.2; }
+
+/* Botón flotante Agregar (celular) */
+.fab {
+  position: fixed; z-index: 21; right: 16px; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 14px);
+  width: 56px; height: 56px; border-radius: 18px; border: 0; cursor: pointer; display: grid; place-items: center;
+  background: var(--noche); color: #fff; box-shadow: 0 12px 26px -10px rgba(19, 32, 61, .65), inset 0 -3px 0 var(--aguja);
+  transition: transform .15s ease;
+}
+.fab:active { transform: scale(.94); }
+@media (min-width: 900px) { .fab { display: none; } }
+
+/* Hoja Agregar */
+.add-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 600px) { .add-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.add-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; cursor: pointer;
+  padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  font: inherit; transition: border-color .15s, background .15s;
+}
+.add-item:hover { border-color: var(--tono); background: color-mix(in srgb, var(--tono) 6%, var(--surface)); }
+.add-item small { color: var(--muted); font-size: .78rem; }
+.add-ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 8px;
+  color: var(--tono); background: color-mix(in srgb, var(--tono) 14%, var(--surface)); }
+
+/* Más: íconos con el color de su sección */
+.more-icon { color: var(--tono, var(--muted)); background: color-mix(in srgb, var(--tono, var(--muted)) 13%, var(--surface)); font-size: 0; }
+
+/* Botones de la barra superior */
+.assistant-btn { display: grid; place-items: center; color: var(--brand); }
+
+/* Menú lateral (PC) */
+@media (min-width: 900px) {
+  .side-nav .nav-icon { display: grid; place-items: center; width: 22px; opacity: .85; }
+  .side-nav a.active .nav-icon { opacity: 1; color: var(--aguja); }
+  .side-add {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 14px; border-radius: var(--radius-sm);
+    border: 0; cursor: pointer; font: inherit; font-weight: 700; color: var(--noche); background: #fff;
+    box-shadow: inset 0 -3px 0 var(--aguja);
+  }
+  .side-add span { flex: 1; text-align: left; }
+  .side-add kbd { font: inherit; font-size: .72rem; font-weight: 700; padding: 1px 7px; border-radius: 6px; background: var(--surface-2); color: var(--muted); }
+  .side-add:hover { background: #f3f6fb; }
+  .side-out { display: inline-flex; align-items: center; gap: 6px; }
+}
+
+/* Tablero: dos columnas en pantallas anchas, una en el celular */
+.dash { display: flex; flex-direction: column; gap: 14px; }
+.dash-col { display: contents; }
+@media (min-width: 1100px) {
+  .main { max-width: 1180px; }
+  .dash { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .dash-col { display: flex; flex-direction: column; gap: 16px; }
+  .dash-col:empty { display: none; }
+}
+/* Que el botón Agregar no tape lo último de la pantalla */
+@media (max-width: 899px) { .main { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 90px); } }

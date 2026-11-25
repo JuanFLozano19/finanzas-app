@@ -14,7 +14,7 @@ export async function seccionNotificaciones({ notificaciones: svc }, aj, recarga
     catch (err) { toast(err.message, 'error'); b.disabled = false; }
   };
   return h('section', { class: 'card' },
-    h('h3', {}, '🔔 Notificaciones'),
+    h('h3', {}, 'Notificaciones'),
     !est.soportado ? h('p', { class: 'muted' }, 'Este navegador no permite notificaciones. Usa Chrome en Android o instala la app.')
       : svc.necesitaInstalar() ? h('p', { class: 'meta-msg warn' }, 'En iPhone primero instala Rumbo: Compartir → "Agregar a pantalla de inicio", y ábrela desde el ícono.')
         : est.activo ? [
@@ -34,12 +34,12 @@ export async function seccionNotificaciones({ notificaciones: svc }, aj, recarga
 }
 
 export async function seccionPasskeys({ passkeys: svc }, _aj, recargar) {
-  if (!svc.soportado()) return h('section', { class: 'card' }, h('h3', {}, '🔐 Entrar con huella o rostro'), h('p', { class: 'muted' }, 'Este dispositivo no es compatible.'));
+  if (!svc.soportado()) return h('section', { class: 'card' }, h('h3', {}, 'Entrar con huella o rostro'), h('p', { class: 'muted' }, 'Este dispositivo no es compatible.'));
   let lista = [];
   let aviso = null;
   try { lista = await svc.listar(); } catch (e) { aviso = e.message; }
   return h('section', { class: 'card' },
-    h('h3', {}, '🔐 Entrar con huella o rostro'),
+    h('h3', {}, 'Entrar con huella o rostro'),
     h('p', { class: 'muted' }, 'Registra este dispositivo y la próxima vez entras sin escribir la contraseña.'),
     aviso ? h('p', { class: 'meta-msg warn' }, aviso) : null,
     lista.length ? h('ul', { class: 'list compact' }, lista.map((p) => h('li', { class: 'list-item static' },
@@ -78,7 +78,7 @@ export async function seccionBloqueo(_ctx, _aj, recargar) {
   const conf = bloqueo.config() || {};
   const huella = activo && await bloqueo.huellaDisponible();
   return h('section', { class: 'card' },
-    h('h3', {}, '🔒 Bloquear la app'),
+    h('h3', {}, 'Bloquear la app'),
     h('p', { class: 'muted' }, 'Pide un PIN (o tu huella) al abrir Rumbo en este dispositivo, para que nadie más vea tu plata ni tu diario.'),
     activo ? [
       h('p', { class: 'meta-msg' }, '✅ Bloqueo activado en este dispositivo'),

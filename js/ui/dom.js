@@ -32,6 +32,23 @@ export function progressBar(valor, variante = '') {
     h('div', { class: 'progress-fill', style: `width:${pct}%` }));
 }
 
+/**
+ * Tablero de dos columnas en pantallas anchas. En el celular queda una sola columna
+ * en el mismo orden en que se pasan los elementos. Cada elemento: nodo o [nodo, 'lado'].
+ */
+export function tablero(...items) {
+  const principal = h('div', { class: 'dash-col' });
+  const lateral = h('div', { class: 'dash-col dash-side' });
+  let orden = 0;
+  for (const it of items) {
+    const [nodo, lado] = Array.isArray(it) ? it : [it, 'principal'];
+    if (!nodo) continue;
+    nodo.style.order = String(++orden);
+    (lado === 'lado' ? lateral : principal).append(nodo);
+  }
+  return h('div', { class: 'dash' }, principal, lateral);
+}
+
 export function emptyState(icono, titulo, texto) {
   return h('div', { class: 'empty' }, h('div', { class: 'empty-icon' }, icono), h('strong', {}, titulo), h('p', {}, texto));
 }

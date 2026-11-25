@@ -28,7 +28,7 @@ export async function generarInforme({ ym, nombre, cargo, dirigido, filas, total
   linea('Cargo u objeto', cargo);
   linea('Dirigido a', dirigido);
   const [a, m] = ym.split('-').map(Number);
-  linea('Periodo', `${fmtDate(`${ym}-01`)} al ${fmtDate(`${ym}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`)}`);
+  linea('Periodo', `${fmtDate(`${ym}-01`, { anio: true })} al ${fmtDate(`${ym}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`, { anio: true })}`);
 
   autoTable(doc, {
     startY: y + 8,
@@ -52,7 +52,7 @@ export async function generarInforme({ ym, nombre, cargo, dirigido, filas, total
   const paginas = doc.getNumberOfPages();
   for (let i = 1; i <= paginas; i++) {
     doc.setPage(i); doc.setFontSize(8); doc.setTextColor(93, 107, 132);
-    doc.text(`Generado con Rumbo el ${fmtDate(today())} · Página ${i} de ${paginas}`, M, doc.internal.pageSize.getHeight() - 24);
+    doc.text(`Generado con Rumbo el ${fmtDate(today(), { anio: true })} · Página ${i} de ${paginas}`, M, doc.internal.pageSize.getHeight() - 24);
   }
   const archivo = `informe-actividades-${ym}.pdf`;
   doc.save(archivo);

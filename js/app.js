@@ -18,9 +18,13 @@ import { renderAnio } from './ui/views/anio.js';
 import { montarBloqueo, bloqueo } from './core/bloqueo.js';
 import { nuevoMovimiento } from './ui/views/movimientos.js';
 import { formTurno } from './ui/views/trabajo.js';
-import { formTarea } from './ui/components.js';
+import { formTarea, formEvento } from './ui/components.js';
 import { BienestarService, AsistenteService } from './services/BienestarService.js';
 import { abrirAsistente } from './ui/asistente.js';
+import { icono } from './ui/iconos.js';
+import { abrirAgregar } from './ui/agregar.js';
+import { formNota, formDiario } from './ui/views/notas.js';
+import { today } from './core/format.js';
 import { NotificacionesService, PasskeyService } from './services/DispositivoService.js';
 import { seccionNotificaciones, seccionPasskeys, seccionBloqueo } from './ui/views/dispositivo.js';
 import { renderRutinas, renderMetasVida, renderLectura, renderContactos, renderEnfoque, renderRevision } from './ui/views/bienestar.js';
@@ -111,7 +115,7 @@ const RUTAS = {
 RUTAS.ajustes = { titulo: 'Ajustes', icono: '⚙️', render: renderAjustes, tab: 'mas', grupo: 'Rumbo', enMas: true, desc: 'Tema, respaldo y cuenta' };
 RUTAS.mas = { titulo: 'Más', icono: '☰', render: crearVistaMas(RUTAS), tab: 'mas', oculta: true };
 
-const TABS = [['hoy', '🏠', 'Hoy'], ['agenda', '🗓', 'Agenda'], ['tareas', '✅', 'Tareas'], ['finanzas', '💰', 'Plata'], ['mas', '☰', 'Más']];
+const TABS = [['hoy', 'hoy', 'Hoy'], ['agenda', 'agenda', 'Agenda'], ['tareas', 'tareas', 'Tareas'], ['finanzas', 'plata', 'Plata'], ['mas', 'mas', 'Más']];
 const SUBTABS = { universidad: ['universidad', 'horario', 'carrera', 'malla', 'repaso', 'apuntes', 'grupos', 'estudio'], finanzas: ['finanzas', 'movimientos', 'cuentas', 'presupuestos', 'fijos', 'deudas', 'prestamos', 'metas', 'deseos', 'estadisticas'] };
 
 const root = document.getElementById('app');
@@ -127,10 +131,11 @@ function construirShell() {
   const sideNav = h('nav', { class: 'side-nav' }, Object.entries(grupos).map(([g, items]) => [
     h('span', { class: 'nav-group' }, g),
     items.map(([id, r]) => h('a', { href: `#${id}`, 'data-ruta': id },
-      h('span', { class: 'nav-icon', 'aria-hidden': 'true' }, r.icono), h('span', {}, r.menu || r.titulo))),
+      h('span', { class: 'nav-icon', 'aria-hidden': 'true' }, icono(id, { size: 19 })), h('span', {}, r.menu || r.titulo))),
   ]));
-  const bottomNav = h('nav', { class: 'bottom-nav' }, TABS.map(([id, icono, label]) =>
-    h('a', { href: `#${id}`, 'data-tab': id }, h('span', { class: 'nav-icon', 'aria-hidden': 'true' }, icono), h('span', {}, label))));
+  const bottomNav = h('nav', { class: 'bottom-nav' }, TABS.map(([id, ico, label]) =>
+    h('a', { href: `#${id}`, 'data-tab': id }, h('span', { class: 'nav-icon', 'aria-hidden': 'true' }, icono(ico)), h('span', {}, label))));
+  const fab = h('button', { class: 'fab', 'aria-label': 'Agregar', title: 'Agregar (tecla N)', onclick: () => agregar() }, icono('mas_agregar', { size: 26 }));
 
   const titulo = h('h1', {});
   const subnav = h('div', { class: 'subnav' });
@@ -141,11 +146,12 @@ function construirShell() {
   const layout = h('div', { class: 'layout' },
     h('aside', { class: 'sidebar' },
       h('div', { class: 'brand' }, h('img', { src: 'icons/icon.svg', alt: '' }), h('span', {}, 'Rumbo')),
+      h('button', { class: 'side-add', onclick: () => agregar() }, icono('mas_agregar', { size: 18 }), h('span', {}, 'Agregar'), h('kbd', {}, 'N')),
       sideNav,
-      h('div', { class: 'sidebar-foot' }, correo, h('button', { class: 'btn ghost small', onclick: salir }, 'Salir'))),
+      h('div', { class: 'sidebar-foot' }, correo, h('button', { class: 'btn ghost small side-out', onclick: salir }, icono('salir', { size: 16 }), 'Salir'))),
     h('main', { class: 'main' }, h('header', { class: 'topbar' }, titulo, h('div', { class: 'top-actions' }, estadoRed,
-      h('button', { class: 'assistant-btn', 'aria-label': 'Asistente: cuéntale a Rumbo', title: 'Cuéntale a Rumbo (tecla /)', onclick: () => abrirAsistente(asistente, mostrar) }, '✨'))), subnav, contenido),
-    bottomNav,
+      h('button', { class: 'assistant-btn', 'aria-label': 'Asistente: cuéntale a Rumbo', title: 'Cuéntale a Rumbo (tecla /)', onclick: () => abrirAsistente(asistente, mostrar) }, icono('chispa', { size: 20 })))), subnav, contenido),
+    fab, bottomNav,
   );
   return { layout, titulo, subnav, contenido, correo, estadoRed };
 }
@@ -160,6 +166,21 @@ const ACCIONES = {
   'nueva-tarea': ['tareas', async (ctx) => formTarea(ctx.vida, null, (await ctx.vida.tareas.listado()).materias, mostrar)],
   asistente: ['hoy', (ctx) => ctx.abrirAsistente()],
 };
+
+async function agregar() {
+  const ctx = ctxBase();
+  const materias = async () => (await vida.tareas.listado()).materias;
+  abrirAgregar([
+    { id: 'gasto', titulo: 'Gasto', detalle: 'Lo que pagaste', ico: 'gasto', tono: 'neg', abrir: () => nuevoMovimiento(ctx, 'gasto', mostrar) },
+    { id: 'ingreso', titulo: 'Ingreso', detalle: 'Plata que entró', ico: 'ingreso', tono: 'pos', abrir: () => nuevoMovimiento(ctx, 'ingreso', mostrar) },
+    { id: 'tarea', titulo: 'Tarea', detalle: 'Algo por hacer', ico: 'tareas', tono: 'task', abrir: async () => formTarea(vida, null, await materias(), mostrar) },
+    { id: 'evento', titulo: 'Evento', detalle: 'Clase, cita o entrega', ico: 'agenda', tono: 'uni', abrir: async () => formEvento(vida, null, await materias(), mostrar, { fecha: today() }) },
+    { id: 'turno', titulo: 'Turno', detalle: 'Cuándo trabajas', ico: 'trabajo', tono: 'work', abrir: async () => formTurno(vida.trabajo, null, (await vida.trabajo.datos()).tipos, mostrar) },
+    { id: 'nota', titulo: 'Nota', detalle: 'Una idea rápida', ico: 'notas', tono: 'meta', abrir: () => formNota(vida, null, mostrar) },
+    { id: 'diario', titulo: 'Diario', detalle: '¿Cómo te fue hoy?', ico: 'diario', tono: 'health', abrir: () => formDiario(vida, null, mostrar) },
+    { id: 'asistente', titulo: 'Dímelo', detalle: 'Escríbelo en palabras', ico: 'chispa', tono: 'brand', abrir: () => ctx.abrirAsistente() },
+  ]);
+}
 
 async function mostrar() {
   if (!sesion) return;
@@ -251,6 +272,9 @@ window.addEventListener('hashchange', mostrar);
 window.addEventListener('keydown', (e) => {
   if (e.key === '/' && sesion && !document.querySelector('dialog[open]') && !/input|textarea|select/i.test(document.activeElement?.tagName)) {
     e.preventDefault(); abrirAsistente(asistente, mostrar);
+  }
+  if (e.key.toLowerCase() === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey && sesion && !document.querySelector('dialog[open]') && !/input|textarea|select/i.test(document.activeElement?.tagName)) {
+    e.preventDefault(); agregar();
   }
 });
 window.addEventListener('offline', () => { toast('Sin internet: tus cambios se guardan y se suben después', 'error'); pintarEstadoRed(); });

@@ -23,7 +23,7 @@ export async function renderAjustes(cont, ctx) {
 
   fill(cont,
     h('section', { class: 'card' },
-      h('h3', {}, '🎨 Apariencia'),
+      h('h3', {}, 'Apariencia'),
       h('span', { class: 'label' }, 'Tema'),
       h('div', { class: 'chips' }, [['auto', '📱 Automático'], ['claro', '☀️ Claro'], ['oscuro', '🌙 Oscuro']].map(([v, l]) =>
         h('button', { class: `chip ${tema === v ? 'active' : ''}`, onclick: () => guardar({ tema: v }) }, l))),
@@ -36,7 +36,7 @@ export async function renderAjustes(cont, ctx) {
     extras,
 
     h('section', { class: 'card' },
-      h('h3', {}, '📤 Tus datos'),
+      h('h3', {}, 'Tus datos'),
       h('p', { class: 'muted' }, 'Descarga una copia de todo en Excel: una hoja por cada módulo.'),
       h('button', { class: 'btn primary', onclick: async (e) => {
         const b = e.currentTarget; b.disabled = true; b.textContent = 'Preparando…';
@@ -47,7 +47,7 @@ export async function renderAjustes(cont, ctx) {
       pendientes ? h('p', { class: 'meta-msg warn' }, `Tienes ${pendientes} cambio${pendientes === 1 ? '' : 's'} sin subir. Se suben solos cuando vuelva el internet.`) : null),
 
     h('section', { class: 'card' },
-      h('h3', {}, '👤 Cuenta'),
+      h('h3', {}, 'Cuenta'),
       h('div', { class: 'row-between' },
         h('div', { class: 'grow' }, h('small', { class: 'muted' }, 'Sesión iniciada como'), h('strong', { class: 'user-mail' }, correo)),
         h('button', { class: 'btn ghost small', onclick: async () => {

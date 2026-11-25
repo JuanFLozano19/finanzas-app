@@ -168,9 +168,9 @@ export async function renderContactos(cont, ctx) {
     h('button', { class: 'chip', title: 'Hablé hoy', onclick: async () => { await bienestar.hableHoy(c); toast(`Anotado: hablaste con ${c.nombre}`); recargar(); } }, '✓ Hablé'));
   fill(cont,
     h('div', { class: 'action-row' }, h('button', { class: 'btn primary', onclick: () => formContacto(bienestar, null, recargar) }, '+ Contacto')),
-    cumples.length ? h('section', { class: 'card' }, h('h3', {}, '🎂 Cumpleaños próximos'),
+    cumples.length ? h('section', { class: 'card' }, h('h3', {}, 'Cumpleaños próximos'),
       h('ul', { class: 'list compact' }, cumples.map((c) => fila(c, c.estado.cumple.dias === 0 ? '¡Hoy es su cumpleaños! 🎉' : `${fmtDate(c.estado.cumple.fecha)} · en ${c.estado.cumple.dias} día${c.estado.cumple.dias === 1 ? '' : 's'}`)))) : null,
-    pendientes.length ? h('section', { class: 'card' }, h('h3', {}, '👋 Hace rato no hablas con…'),
+    pendientes.length ? h('section', { class: 'card' }, h('h3', {}, 'Hace rato no hablas con…'),
       h('ul', { class: 'list compact' }, pendientes.map((c) => fila(c, c.estado.desde != null ? `Hace ${c.estado.desde} días` : 'Aún no registras contacto')))) : null,
     items.length ? h('section', {}, h('h4', { class: 'section-title' }, `Todos (${items.length})`), h('ul', { class: 'list' }, items.map((c) => fila(c))))
       : emptyState('👥', 'Sin contactos', 'Agrega a tu familia y amigos con su cumpleaños para que nunca se te pase.'),

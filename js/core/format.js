@@ -5,9 +5,24 @@ export const fmtMoney = (n) => moneda.format(Number(n) || 0);
 
 export const fmtPct = (x) => `${Math.round((Number(x) || 0) * 100)}%`;
 
-export function fmtDate(iso) {
+/** Fecha corta. El año solo aparece si no es el actual (o si se pide con { anio: true }). */
+export function fmtDate(iso, { anio = false } = {}) {
   if (!iso) return '';
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
+  const d = new Date(`${iso}T00:00:00`);
+  const conAnio = anio || d.getFullYear() !== new Date().getFullYear();
+  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', ...(conAnio ? { year: 'numeric' } : {}) });
+}
+
+/** Fecha en palabras cuando está cerca: hoy, mañana, ayer, en 3 días, hace 2 días. */
+export function fmtRelativa(iso, base = today()) {
+  if (!iso) return '';
+  const dias = Math.round((new Date(`${iso}T00:00:00Z`) - new Date(`${base}T00:00:00Z`)) / 864e5);
+  if (dias === 0) return 'hoy';
+  if (dias === 1) return 'mañana';
+  if (dias === -1) return 'ayer';
+  if (dias > 1 && dias < 7) return `en ${dias} días`;
+  if (dias < -1 && dias > -7) return `hace ${-dias} días`;
+  return fmtDate(iso);
 }
 
 /** Fecha local de hoy en formato YYYY-MM-DD. */

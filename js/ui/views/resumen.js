@@ -1,4 +1,4 @@
-import { h, fill, money, progressBar, emptyState } from '../dom.js';
+import { h, fill, money, progressBar, emptyState, tablero } from '../dom.js';
 import { currentMonth, monthLabel, fmtMoney, fmtPct } from '../../core/format.js';
 import { filaPresupuesto, registrarFijo, etiquetaFijo } from './plata.js';
 
@@ -23,23 +23,24 @@ export async function renderResumen(cont, ctx) {
         h('div', {}, h('small', {}, '↓ Gastos'), money(resumen.gastos, 'neg')),
       ),
     ),
-    cuentas.items.length ? h('button', { class: 'card banner', onclick: () => irA('cuentas') },
+    tablero(
+    [cuentas.items.length ? h('button', { class: 'card banner', onclick: () => irA('cuentas') },
       h('span', {}, '🏦'), h('span', { class: 'grow' }, h('strong', {}, `Tienes ${fmtMoney(cuentas.total)}`),
-        h('small', { class: 'muted' }, cuentas.items.filter((c) => c.activa).map((c) => `${c.icono} ${fmtMoney(c.saldo)}`).join('  '))), h('span', {}, '›')) : null,
+        h('small', { class: 'muted' }, cuentas.items.filter((c) => c.activa).map((c) => `${c.icono} ${fmtMoney(c.saldo)}`).join('  '))), h('span', {}, '›')) : null, 'lado'],
     fijosUrgentes.length ? h('section', { class: 'card' },
-      h('div', { class: 'card-head' }, h('h3', {}, '🔁 Pagos fijos por pagar'), h('button', { class: 'link', onclick: () => irA('fijos') }, 'Ver')),
+      h('div', { class: 'card-head' }, h('h3', {}, 'Pagos fijos por pagar'), h('button', { class: 'link', onclick: () => irA('fijos') }, 'Ver')),
       h('ul', { class: 'list compact' }, fijosUrgentes.map((x) => h('li', { class: 'list-item static' },
         h('span', { class: 'grow' }, h('strong', {}, x.nombre), h('small', { class: 'muted' }, fmtMoney(x.monto))), etiquetaFijo(x.estado),
         h('button', { class: 'btn primary small', onclick: () => registrarFijo(plata, x, () => renderResumen(cont, ctx)) }, 'Pagar'))))) : null,
     alertas.length ? h('section', { class: 'card' },
-      h('div', { class: 'card-head' }, h('h3', {}, '⚠️ Presupuestos en alerta'), h('button', { class: 'link', onclick: () => irA('presupuestos') }, 'Ver')),
+      h('div', { class: 'card-head' }, h('h3', {}, 'Presupuestos en alerta'), h('button', { class: 'link', onclick: () => irA('presupuestos') }, 'Ver')),
       alertas.map((p) => filaPresupuesto(p, () => irA('presupuestos')))) : null,
-    h('div', { class: 'stats' },
+    [h('div', { class: 'stats' },
       h('button', { class: 'stat stat-deuda', onclick: () => irA('deudas') },
         h('small', {}, 'Debes en total'), money(deudas.totalPendiente)),
       h('button', { class: 'stat stat-meta', onclick: () => irA('metas') },
         h('small', {}, 'Ahorrado en metas'), money(metas.totalAhorrado)),
-    ),
+    ), 'lado'],
 
     h('section', { class: 'card' },
       h('div', { class: 'card-head' }, h('h3', {}, 'Tus metas'),
@@ -55,7 +56,7 @@ export async function renderResumen(cont, ctx) {
         : emptyState('🎯', 'Sin metas todavía', 'Agrega lo que quieres comprar y ve ahorrando para eso.'),
     ),
 
-    h('section', { class: 'card' },
+    [h('section', { class: 'card' },
       h('div', { class: 'card-head' }, h('h3', {}, 'Gastos del mes por categoría'),
         h('button', { class: 'link', onclick: () => irA('movimientos') }, 'Movimientos')),
       porCategoria.length
@@ -63,9 +64,9 @@ export async function renderResumen(cont, ctx) {
           h('div', { class: 'row-between' }, h('span', {}, c.categoria), money(c.total)),
           progressBar(c.total / maxCat, 'gasto')))
         : emptyState('🧾', 'Sin gastos este mes', 'Registra tus gastos para ver en qué se te va la plata.'),
-    ),
+    ), 'lado'],
 
-    deudasActivas.length ? h('section', { class: 'card' },
+    [deudasActivas.length ? h('section', { class: 'card' },
       h('div', { class: 'card-head' }, h('h3', {}, 'Deudas pendientes'),
         h('button', { class: 'link', onclick: () => irA('deudas') }, 'Ver todas')),
       deudasActivas.map((d) => h('div', { class: 'mini-row' },
@@ -73,6 +74,7 @@ export async function renderResumen(cont, ctx) {
         h('div', { class: 'grow' },
           h('div', { class: 'row-between' }, h('strong', {}, d.nombre), money(d.estado.pendiente)),
           progressBar(d.estado.progreso, 'deuda')))),
-    ) : null,
+    ) : null, 'lado'],
+    ),
   );
 }

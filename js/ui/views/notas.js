@@ -6,7 +6,7 @@ const EMOJI = { 5: '😄', 4: '🙂', 3: '😐', 2: '😕', 1: '😞' };
 let pestana = 'nota';
 let busqueda = '';
 
-function formNota(vida, n, recargar) {
+export function formNota(vida, n, recargar) {
   formulario({
     titulo: n ? 'Editar nota' : 'Nueva nota',
     valores: n || {},
@@ -20,7 +20,7 @@ function formNota(vida, n, recargar) {
   });
 }
 
-function formDiario(vida, n, recargar) {
+export function formDiario(vida, n, recargar) {
   formulario({
     titulo: n ? 'Editar entrada' : '¿Cómo te fue hoy?',
     valores: n ? { ...n, animo: n.animo ?? 3 } : { fecha: today(), animo: 4 },

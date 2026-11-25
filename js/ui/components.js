@@ -1,6 +1,6 @@
 // Componentes compartidos entre varias vistas (Hoy, Tareas, Agenda, Universidad).
 import { h, checkCircle, formulario, toast } from './dom.js';
-import { fmtDate, fmtTime, today } from '../core/format.js';
+import { fmtTime, today, fmtRelativa } from '../core/format.js';
 
 export const PRIORIDADES = [[1, 'Alta'], [2, 'Media'], [3, 'Baja']];
 export const TIPOS_EVENTO = [['clase', '📚 Clase'], ['trabajo', '💼 Trabajo'], ['cita', '📍 Cita'], ['entrega', '📝 Entrega'], ['estudio', '🧠 Repaso'], ['otro', '🗓 Otro']];
@@ -27,6 +27,8 @@ export function formTarea(vida, tarea, materias, recargar, preset = {}) {
   });
 }
 
+const mayus = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export function tareaItem(vida, t, materias, recargar) {
   const materia = materias.find((m) => m.id === t.materia_id);
   const hoy = today();
@@ -38,7 +40,7 @@ export function tareaItem(vida, t, materias, recargar) {
       h('span', { class: 'task-title' }, t.titulo),
       h('span', { class: 'task-meta' },
         t.prioridad === 1 && !t.hecha ? h('span', { class: 'pill high' }, 'Alta') : null,
-        t.fecha_limite ? h('span', { class: `pill ${vencida ? 'late' : ''}` }, `${vencida ? 'Venció ' : ''}${t.fecha_limite === hoy ? 'Hoy' : fmtDate(t.fecha_limite)}`) : null,
+        t.fecha_limite ? h('span', { class: `pill ${vencida ? 'late' : ''}` }, vencida ? `Venció ${fmtRelativa(t.fecha_limite)}` : mayus(fmtRelativa(t.fecha_limite))) : null,
         materia ? h('span', { class: 'pill', style: `--c:${materia.color}` }, h('i', { class: 'swatch' }), materia.nombre) : null,
       )),
   );

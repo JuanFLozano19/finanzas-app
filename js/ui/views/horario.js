@@ -45,7 +45,7 @@ export async function renderHorario(cont, ctx) {
   fill(cont,
     h('section', { class: 'card' },
       h('div', { class: 'row-between' },
-        h('div', {}, h('h3', {}, '🎓 Semestre'),
+        h('div', {}, h('h3', {}, 'Semestre'),
           h('small', { class: 'muted' }, datos.inicio && datos.fin ? `${fmtDate(datos.inicio)} → ${fmtDate(datos.fin)}` : 'Define las fechas para que las clases terminen solas al final del semestre.')),
         h('button', { class: 'btn ghost small', onclick: () => formSemestre(horario, datos.inicio, datos.fin, recargar) }, datos.inicio ? 'Cambiar' : 'Definir'))),
     h('div', { class: 'action-row' }, h('button', { class: 'btn primary', onclick: () => formClase(horario, datos, recargar) }, '+ Clase')),

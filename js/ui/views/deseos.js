@@ -86,7 +86,7 @@ export async function renderDeseos(cont, ctx) {
   const comprados = items.filter((d) => d.comprado);
   const precio = h('input', { type: 'number', inputmode: 'numeric', min: '1', placeholder: 'Precio de algo que quieres comprar', class: 'search' });
   fill(cont,
-    h('section', { class: 'card' }, h('h3', {}, '🤔 ¿Me lo puedo permitir?'),
+    h('section', { class: 'card' }, h('h3', {}, '¿Me lo puedo permitir?'),
       h('form', { class: 'toolbar', onsubmit: (ev) => { ev.preventDefault(); const v = Number(precio.value); if (v > 0) evaluarCompra(plata, v).catch((er) => toast(er.message, 'error')); } },
         precio, h('button', { class: 'btn primary', type: 'submit' }, 'Calcular'))),
     h('div', { class: 'action-row' }, h('button', { class: 'btn primary', onclick: () => formDeseo(plata, null, recargar) }, '+ Agregar a la lista')),
