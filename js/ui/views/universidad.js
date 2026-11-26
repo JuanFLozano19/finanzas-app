@@ -1,3 +1,4 @@
+import { abrirSemestreNuevo } from '../herramientas.js';
 import { h, fill, emptyState, formulario, toast, progressBar, dialogo } from '../dom.js';
 import { fmtDate } from '../../core/format.js';
 import { formTarea, tareaItem } from '../components.js';
@@ -127,7 +128,8 @@ export async function renderUniversidad(cont, ctx) {
         h('i', { class: 'swatch', style: `--c:${e.materia?.color}` }),
         h('span', { class: 'grow' }, h('strong', {}, e.nombre), h('small', { class: 'muted' }, `${e.materia?.nombre} · ${Number(e.porcentaje)}%`)),
         h('span', { class: 'pill' }, fmtDate(e.fecha)))))) : null,
-    h('div', { class: 'action-row' }, h('button', { class: 'btn primary', onclick: () => formMateria(vida, null, recargar) }, '+ Nueva materia')),
+    h('div', { class: 'action-row' }, h('button', { class: 'btn primary', onclick: () => formMateria(vida, null, recargar) }, '+ Nueva materia'),
+      activas.length ? h('button', { class: 'btn ghost', onclick: () => abrirSemestreNuevo(ctx.semestre, ctx.irA) }, '🎓 Cerrar semestre') : null),
     items.length ? null : emptyState('🎓', 'Sin materias', 'Agrega tus materias con sus porcentajes y te digo cuánto necesitas para pasar.'),
     activas.map((m) => tarjeta(vida, m, items, recargar, ctx.plan)),
     anteriores.length ? h('button', { class: 'card banner', onclick: () => ctx.irA('carrera') },

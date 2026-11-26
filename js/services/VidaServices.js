@@ -1,5 +1,6 @@
 // Servicios de los módulos de vida. Cada clase tiene una sola responsabilidad
 // y recibe sus repositorios por constructor (inyección de dependencias).
+import { copiarSemana } from '../domain/herramientas.js';
 import { today, addDays, startOfWeek, monthRange } from '../core/format.js';
 import {
   racha, cumplimiento, tocaEnFecha, eventosDelDia, agruparTareas,
@@ -115,6 +116,14 @@ export class TurnosService {
   }
   guardar(id, d) { const datos = { ...d, tipo: 'trabajo' }; return id ? this.repo.update(id, datos) : this.repo.create(datos); }
   eliminar(id) { return this.repo.remove(id); }
+
+  /** Copia los turnos sueltos de la semana `origen` (lunes) a la semana `destino` (lunes). */
+  async copiarSemana(origen, destino) {
+    const turnos = await this.repo.list({ orderBy: 'fecha', ascending: true, filters: [['tipo', 'eq', 'trabajo']] });
+    const nuevos = copiarSemana(turnos, origen, destino);
+    for (const n of nuevos) await this.repo.create({ ...n, tipo: 'trabajo' });
+    return nuevos.length;
+  }
 
   // ---- Informe, calendario y horario compartido ----
   async informe(ym) {

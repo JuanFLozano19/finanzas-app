@@ -1,3 +1,4 @@
+import { sinMovimiento, explosion } from './movimiento.js';
 // Helpers de interfaz reutilizables: creación de nodos, avisos, diálogos y formularios.
 import { fmtMoney } from '../core/format.js';
 
@@ -65,6 +66,15 @@ export function dialogo(contenido, onClose) {
   const d = h('dialog', { class: 'sheet' }, contenido);
   d.addEventListener('close', () => { d.remove(); onClose?.(); });
   d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+  // Cierre animado: la hoja baja (o se encoge en el PC) antes de cerrarse de verdad.
+  const cerrarYa = d.close.bind(d);
+  d.close = (valor) => {
+    if (!d.open || d.classList.contains('cierra')) return;
+    if (sinMovimiento()) { cerrarYa(valor); return; }
+    d.classList.add('cierra');
+    setTimeout(() => cerrarYa(valor), 210);
+  };
+  d.addEventListener('cancel', (e) => { e.preventDefault(); d.close(); });
   document.body.append(d);
   d.showModal();
   return d;
@@ -172,7 +182,14 @@ export function formulario({ titulo, campos, valores = {}, enviar = 'Guardar', o
 export function checkCircle(hecho, onToggle, etiqueta) {
   return h('button', {
     class: `check-circle ${hecho ? 'on' : ''}`, type: 'button', 'aria-pressed': String(hecho), 'aria-label': etiqueta,
-    onclick: async (e) => { e.stopPropagation(); e.currentTarget.disabled = true; try { await onToggle(); } catch (err) { toast(err.message, 'error'); e.currentTarget.disabled = false; } },
+    onclick: async (e) => {
+      e.stopPropagation();
+      const b = e.currentTarget;
+      b.disabled = true;
+      // Respuesta inmediata: se marca y salta antes de que el servidor conteste.
+      if (!hecho) { b.classList.add('on', 'pop'); b.textContent = '✓'; explosion(b); } else { b.classList.remove('on'); b.textContent = ''; }
+      try { await onToggle(); } catch (err) { toast(err.message, 'error'); b.disabled = false; }
+    },
   }, hecho ? '✓' : '');
 }
 

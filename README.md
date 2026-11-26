@@ -49,6 +49,20 @@ App web instalable (PWA) para gestionar tu vida desde el celular y el PC: **agen
 - 🔒 **Bloqueo local con PIN o huella** (WebAuthn de plataforma), que se activa al volver a la app.
 - 💧 **Recordatorio de agua** cada 2 horas si vas atrasado con tu meta.
 
+### Herramientas
+- 📷 **Escanear recibos:** OCR en el navegador (Tesseract.js, español) que saca total, comercio, fecha y categoría.
+- 🔎 **Buscador general** (`Ctrl + K`): tareas, notas, apuntes, eventos, movimientos, metas, materias y más, sin tildes ni mayúsculas.
+- 🗓 **Vista de mes** en la Agenda, con los eventos escritos en el PC.
+- 🔁 **Copiar semana de turnos** (pasada → esta, esta → próxima) sin duplicar.
+- 📊 **Comparado con el mes pasado:** mismo tramo de días y alerta si una categoría sube ≥ 30 % y ≥ $20.000.
+- 🪙 **Ahorro por redondeo:** cada gasto aporta a una meta lo que falta para el siguiente múltiplo.
+- 🎓 **Cerrar semestre:** notas finales → aprobada/perdida, termina las clases semanales y fija fechas nuevas.
+- 📥 **Importar extractos:** Excel/CSV del banco (detecta columnas) o PDF de Nequi (incluso con contraseña), con revisión y marca de repetidos.
+- ☁️ **Copias de seguridad automáticas** cada domingo (Edge Function `respaldar` + pg_cron) en un bucket privado; se guardan las 8 últimas y se pueden descargar o restaurar.
+
+### Movimiento
+Entrada con la brújula que busca el norte, tarjetas que suben en cascada, cifras que cuentan, onda al tocar, chispas al completar, hojas que suben y bajan con resorte, barras que se llenan. Todo se apaga si el sistema pide reducir movimiento.
+
 ## Diseño
 
 Paleta "brújula de noche": azul noche `#13203D` para lo importante, cobalto `#2F55D4` como color principal (cambiable en Ajustes), naranja aguja `#FF7A1A` reservado para lo urgente (hoy, turno en curso), niebla `#EDF1F7` de fondo. Tipografías: Bricolage Grotesque para títulos y DM Sans para texto.
@@ -94,12 +108,12 @@ supabase/functions/calendario  Edge Function pública con token: iCal y horario 
 
 - **RLS** en las 36 tablas: cada usuario solo lee y escribe lo suyo. Además hay políticas *restrictivas* que impiden referenciar registros de otro usuario.
 - Los secretos (VAPID y cron) están en **Supabase Vault**. Solo la Edge Function los lee, mediante una función `security definer` limitada a `service_role`.
-- Archivos en un bucket **privado** con carpeta por usuario y enlaces firmados de 2 minutos.
+- Archivos y copias de seguridad en buckets **privados** con carpeta por usuario (las copias solo las escribe la Edge Function).
 - El texto se inserta como `textNode`, sin `innerHTML`, para evitar XSS.
 
 ## Calidad
 
-- **57 pruebas unitarias** del dominio, la cola sin conexión y el asistente: `npm test`.
+- **70 pruebas unitarias** del dominio, la cola sin conexión, el asistente y las herramientas: `npm test`.
 - Pruebas visuales de humo (Playwright) en las 36 pantallas, en celular y escritorio.
 - Asesores de Supabase revisados (seguridad y rendimiento).
 - Accesibilidad: roles ARIA, foco visible, gráficas con tabla de datos y soporte de `prefers-reduced-motion`.

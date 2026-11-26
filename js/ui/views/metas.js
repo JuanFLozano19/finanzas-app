@@ -1,3 +1,4 @@
+import { tarjetaRedondeo } from '../herramientas.js';
 import { h, fill, money, progressBar, emptyState, formulario, toast, confirmar } from '../dom.js';
 import { fmtDate, fmtMoney, fmtPct, today } from '../../core/format.js';
 import { ICONOS_META } from '../../config.js';
@@ -87,9 +88,11 @@ function tarjeta(service, m, recargar) {
   );
 }
 
-export async function renderMetas(cont, { service }) {
-  const recargar = () => renderMetas(cont, { service });
+export async function renderMetas(cont, ctx) {
+  const { service } = ctx;
+  const recargar = () => renderMetas(cont, ctx);
   const { items, totalAhorrado } = await service.metas();
+  const redondeo = await tarjetaRedondeo(ctx, items, recargar).catch(() => null);
   const activas = items.filter((m) => !m.completada);
   const logradas = items.filter((m) => m.completada);
   const totalObjetivo = activas.reduce((a, m) => a + Number(m.monto_objetivo), 0);
@@ -101,6 +104,7 @@ export async function renderMetas(cont, { service }) {
       h('small', {}, activas.length ? `de ${fmtMoney(totalObjetivo)} en ${activas.length} meta${activas.length === 1 ? '' : 's'}` : 'Crea tu primera meta'),
     ),
     h('div', { class: 'action-row' }, h('button', { class: 'btn primary', onclick: () => formMeta(service, null, recargar) }, '+ Nueva meta')),
+    redondeo,
     items.length ? null : emptyState('🎯', 'Aún no tienes metas', '¿Qué quieres comprar? Agrégalo y te digo cuánto ahorrar al mes.'),
     activas.map((m) => tarjeta(service, m, recargar)),
     logradas.length ? h('h4', { class: 'section-title' }, 'Logradas 🏆') : null,

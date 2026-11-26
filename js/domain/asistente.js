@@ -2,7 +2,7 @@
 // en una acción concreta. Todo es local, gratis y predecible (ver tests/asistente.test.js).
 import { addDays, weekday } from '../core/format.js';
 
-const sinTildes = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+export const sinTildes = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // ---------- Montos ----------
 const MULT = [

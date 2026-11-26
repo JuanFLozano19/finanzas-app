@@ -1,3 +1,4 @@
+import { abrirCopiarSemana } from '../herramientas.js';
 // Trabajo: solo turnos (cuándo, a qué hora y de qué tipo). Sin pagos ni tarifas.
 // Los recordatorios llegan por notificación: X minutos antes y la noche anterior.
 import { h, fill, emptyState, formulario, toast, confirmar } from '../dom.js';
@@ -174,6 +175,7 @@ export async function renderTrabajo(cont, ctx) {
 
     h('div', { class: 'action-row' },
       h('button', { class: 'btn primary', onclick: () => formTurno(trabajo, null, d.tipos, recargar) }, '+ Turno'),
+      h('button', { class: 'btn ghost', onclick: () => abrirCopiarSemana(trabajo, recargar) }, 'Copiar semana'),
       h('button', { class: 'btn ghost', onclick: () => irA('agenda') }, 'Ver en la agenda')),
 
     porDia.size ? h('section', { class: 'shift-days' }, [...porDia.entries()].map(([fecha, items]) => h('div', { class: 'shift-day' },

@@ -1,3 +1,4 @@
+import { tarjetaComparacion } from '../herramientas.js';
 import { h, fill, money, progressBar, emptyState, tablero } from '../dom.js';
 import { currentMonth, monthLabel, fmtMoney, fmtPct } from '../../core/format.js';
 import { filaPresupuesto, registrarFijo, etiquetaFijo } from './plata.js';
@@ -7,6 +8,7 @@ export async function renderResumen(cont, ctx) {
   const ym = currentMonth();
   const [{ mes, deudas, metas }, pres, fijos, cuentas] = await Promise.all([
     service.resumenGeneral(ym), plata.presupuestos(ym), plata.recurrentes(), plata.cuentas()]);
+  const comparacion = await tarjetaComparacion(service, irA);
   const alertas = pres.items.filter((p) => p.estado !== 'ok');
   const fijosUrgentes = fijos.pendientes.filter((x) => x.activo && (x.estado.atrasado || x.estado.proximo));
   const { resumen, porCategoria } = mes;
@@ -41,6 +43,8 @@ export async function renderResumen(cont, ctx) {
       h('button', { class: 'stat stat-meta', onclick: () => irA('metas') },
         h('small', {}, 'Ahorrado en metas'), money(metas.totalAhorrado)),
     ), 'lado'],
+
+    comparacion,
 
     h('section', { class: 'card' },
       h('div', { class: 'card-head' }, h('h3', {}, 'Tus metas'),

@@ -23,6 +23,9 @@ import { BienestarService, AsistenteService } from './services/BienestarService.
 import { abrirAsistente } from './ui/asistente.js';
 import { icono } from './ui/iconos.js';
 import { abrirAgregar } from './ui/agregar.js';
+import { terminarIntro, escalonar, contarNumeros, activarOndas } from './ui/movimiento.js';
+import { abrirBuscador, abrirEscaner, abrirImportar, seccionRespaldos } from './ui/herramientas.js';
+import { BuscadorService, ImportarService, RespaldosService, SemestreService } from './services/HerramientasService.js';
 import { formNota, formDiario } from './ui/views/notas.js';
 import { today } from './core/format.js';
 import { NotificacionesService, PasskeyService } from './services/DispositivoService.js';
@@ -71,7 +74,11 @@ const passkeys = new PasskeyService(supabase);
 seccionesAjustes.unshift(seccionNotificaciones, seccionBloqueo, seccionPasskeys);
 const mercado = new MercadoService(repos, service);
 const motivacion = new MotivacionService(repos);
-seccionesAjustes.push(seccionReparto);
+seccionesAjustes.push(seccionReparto, seccionRespaldos);
+const buscador = new BuscadorService(repos);
+const importar = new ImportarService(repos, service);
+const respaldos = new RespaldosService(supabase);
+const semestre = new SemestreService(repos, uni.carrera);
 
 // Para agregar un módulo nuevo basta con registrarlo aquí (abierto/cerrado).
 // tab = a qué botón de la barra inferior pertenece; grupo = sección del menú lateral.
@@ -150,13 +157,14 @@ function construirShell() {
       sideNav,
       h('div', { class: 'sidebar-foot' }, correo, h('button', { class: 'btn ghost small side-out', onclick: salir }, icono('salir', { size: 16 }), 'Salir'))),
     h('main', { class: 'main' }, h('header', { class: 'topbar' }, titulo, h('div', { class: 'top-actions' }, estadoRed,
+      h('button', { class: 'assistant-btn', 'aria-label': 'Buscar', title: 'Buscar (Ctrl + K)', onclick: () => abrirBuscador(buscador, irA) }, icono('buscar', { size: 20 })),
       h('button', { class: 'assistant-btn', 'aria-label': 'Asistente: cuéntale a Rumbo', title: 'Cuéntale a Rumbo (tecla /)', onclick: () => abrirAsistente(asistente, mostrar) }, icono('chispa', { size: 20 })))), subnav, contenido),
     fab, bottomNav,
   );
   return { layout, titulo, subnav, contenido, correo, estadoRed };
 }
 
-const ctxBase = () => ({ service, vida, plata, ...uni, bienestar, asistente, notificaciones, passkeys, mercado, motivacion, irA, correo: sesion?.user.email, salir, abrirAsistente: () => abrirAsistente(asistente, mostrar) });
+const ctxBase = () => ({ service, vida, plata, ...uni, bienestar, asistente, notificaciones, passkeys, mercado, motivacion, importar, respaldos, semestre, buscador, irA, correo: sesion?.user.email, salir, abrirAsistente: () => abrirAsistente(asistente, mostrar) });
 
 // Atajos del ícono de la app (manifest "shortcuts"): abren la pantalla y su formulario.
 const ACCIONES = {
@@ -178,6 +186,8 @@ async function agregar() {
     { id: 'turno', titulo: 'Turno', detalle: 'Cuándo trabajas', ico: 'trabajo', tono: 'work', abrir: async () => formTurno(vida.trabajo, null, (await vida.trabajo.datos()).tipos, mostrar) },
     { id: 'nota', titulo: 'Nota', detalle: 'Una idea rápida', ico: 'notas', tono: 'meta', abrir: () => formNota(vida, null, mostrar) },
     { id: 'diario', titulo: 'Diario', detalle: '¿Cómo te fue hoy?', ico: 'diario', tono: 'health', abrir: () => formDiario(vida, null, mostrar) },
+    { id: 'escanear', titulo: 'Escanear recibo', detalle: 'Foto y listo', ico: 'camara', tono: 'neg', abrir: () => abrirEscaner(ctx, mostrar) },
+    { id: 'importar', titulo: 'Importar extracto', detalle: 'Del banco o Nequi', ico: 'importar', tono: 'pos', abrir: () => abrirImportar(ctx, mostrar) },
     { id: 'asistente', titulo: 'Dímelo', detalle: 'Escríbelo en palabras', ico: 'chispa', tono: 'brand', abrir: () => ctx.abrirAsistente() },
   ]);
 }
@@ -203,12 +213,15 @@ async function mostrar() {
   shell.contenido.replaceChildren(h('div', { class: 'skeleton', 'aria-busy': 'true', 'aria-label': 'Cargando' },
     h('div', { class: 'sk sk-hero' }), h('div', { class: 'sk-row' }, h('div', { class: 'sk sk-stat' }), h('div', { class: 'sk sk-stat' }), h('div', { class: 'sk sk-stat' })),
     h('div', { class: 'sk sk-card' }), h('div', { class: 'sk sk-card short' })));
-  shell.contenido.classList.remove('entra');
   window.scrollTo({ top: 0 });
+  const primera = !document.body.classList.contains('app-lista');
   try {
     await r.render(shell.contenido, ctxBase());
-    void shell.contenido.offsetWidth; shell.contenido.classList.add('entra');
+    escalonar(shell.contenido, { primera });
+    setTimeout(() => contarNumeros(shell.contenido), primera ? 1350 : 120);
+    terminarIntro();
   } catch (e) {
+    terminarIntro();
     console.error(e);
     const offline = !navigator.onLine;
     shell.contenido.replaceChildren(h('div', { class: 'empty' },
@@ -256,7 +269,7 @@ function aplicarSesion(nueva) {
   const cambioUsuario = nueva?.user?.id !== sesion?.user?.id;
   const yaEnLogin = !sesion && !nueva && root.querySelector('.auth-wrap');
   sesion = nueva;
-  if (!sesion) { if (!yaEnLogin) { shell = null; renderAuth(root, auth, passkeys); } return; }
+  if (!sesion) { if (!yaEnLogin) { shell = null; renderAuth(root, auth, passkeys); } terminarIntro(); return; }
   if (!shell || cambioUsuario) {
     shell = construirShell();
     root.replaceChildren(shell.layout);
@@ -269,7 +282,13 @@ function aplicarSesion(nueva) {
 }
 
 window.addEventListener('hashchange', mostrar);
+activarOndas();
 window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && sesion) {
+    e.preventDefault();
+    if (!document.querySelector('dialog.top[open]')) abrirBuscador(buscador, irA);
+    return;
+  }
   if (e.key === '/' && sesion && !document.querySelector('dialog[open]') && !/input|textarea|select/i.test(document.activeElement?.tagName)) {
     e.preventDefault(); abrirAsistente(asistente, mostrar);
   }

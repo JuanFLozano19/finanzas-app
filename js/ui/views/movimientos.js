@@ -1,16 +1,18 @@
+import { abrirEscaner, abrirImportar } from '../herramientas.js';
+import { icono } from '../iconos.js';
 import { h, fill, money, emptyState, formulario, toast } from '../dom.js';
-import { currentMonth, monthLabel, fmtDate, today } from '../../core/format.js';
+import { currentMonth, monthLabel, fmtDate, today, fmtMoney } from '../../core/format.js';
 import { CATEGORIAS } from '../../config.js';
 import { abrirReparto } from './plata.js';
 
 let mesSel = currentMonth();
 let filtro = 'todos';
 
-function abrirForm(service, tipo, mov, recargar, cuentas = [], plata = null) {
+function abrirForm(service, tipo, mov, recargar, cuentas = [], plata = null, iniciales = {}) {
   const esIngreso = tipo === 'ingreso';
   formulario({
     titulo: `${mov ? 'Editar' : 'Nuevo'} ${esIngreso ? 'ingreso' : 'gasto'}`,
-    valores: mov || { fecha: today(), categoria: CATEGORIAS[tipo][0] },
+    valores: mov || { fecha: today(), categoria: CATEGORIAS[tipo][0], ...iniciales },
     campos: [
       { name: 'monto', label: 'Monto (COP)', type: 'money', required: true, placeholder: 'Ej: 50000' },
       { name: 'categoria', label: 'Categoría', type: 'select', options: CATEGORIAS[tipo], required: true },
@@ -20,8 +22,10 @@ function abrirForm(service, tipo, mov, recargar, cuentas = [], plata = null) {
         options: [['', '— Sin cuenta —'], ...cuentas.filter((c) => c.activa || c.id === mov?.cuenta_id).map((c) => [c.id, `${c.icono} ${c.nombre}`])] } : null,
     ].filter(Boolean),
     onSubmit: async (datos) => {
-      await service.guardarMovimiento(mov?.id, { ...datos, tipo });
-      toast(mov ? 'Cambios guardados' : `${esIngreso ? 'Ingreso' : 'Gasto'} registrado`);
+      const guardado = await service.guardarMovimiento(mov?.id, { ...datos, tipo });
+      toast(mov ? 'Cambios guardados' : guardado?._redondeo
+        ? `Gasto registrado y ${fmtMoney(guardado._redondeo)} a tu meta 🪙`
+        : `${esIngreso ? 'Ingreso' : 'Gasto'} registrado`);
       recargar();
       if (!mov && esIngreso && plata) abrirReparto(plata, datos.monto, recargar).catch(() => {});
     },
@@ -61,6 +65,9 @@ export async function renderMovimientos(cont, ctx) {
       h('button', { class: 'btn income', onclick: () => abrirForm(service, 'ingreso', null, recargar, cuentas, plata) }, '+ Ingreso'),
       h('button', { class: 'btn expense', onclick: () => abrirForm(service, 'gasto', null, recargar, cuentas) }, '+ Gasto'),
     ),
+    h('div', { class: 'tool-row' },
+      h('button', { class: 'tool-btn', onclick: () => abrirEscaner(ctx, recargar) }, icono('camara', { size: 18 }), 'Escanear recibo'),
+      h('button', { class: 'tool-btn', onclick: () => abrirImportar(ctx, recargar) }, icono('importar', { size: 18 }), 'Importar extracto')),
     visibles.length
       ? [...porFecha.entries()].map(([fecha, items]) => h('section', { class: 'day' },
         h('h4', { class: 'day-title' }, fmtDate(fecha)),
@@ -76,7 +83,7 @@ export async function renderMovimientos(cont, ctx) {
 }
 
 /** Abre directo el formulario de un ingreso o gasto nuevo (atajos del ícono de la app). */
-export async function nuevoMovimiento(ctx, tipo, recargar) {
+export async function nuevoMovimiento(ctx, tipo, recargar, iniciales = {}) {
   const cuentas = await ctx.plata.listaCuentas().catch(() => []);
-  abrirForm(ctx.service, tipo, null, recargar, cuentas, ctx.plata);
+  abrirForm(ctx.service, tipo, null, recargar, cuentas, ctx.plata, iniciales);
 }

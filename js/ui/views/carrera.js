@@ -1,3 +1,4 @@
+import { abrirSemestreNuevo } from '../herramientas.js';
 // Carrera (promedio acumulado y créditos), malla curricular y plan de repaso.
 import { h, fill, emptyState, formulario, toast, progressBar, dialogo } from '../dom.js';
 import { fmtDate, fmtDayLong, fmtTime, fmtPct } from '../../core/format.js';
@@ -54,7 +55,8 @@ export async function renderCarrera(cont, ctx) {
       h('div', { class: 'stat' }, h('small', {}, 'Créditos aprobados'), h('b', {}, String(r.creditosAprobados))),
       h('div', { class: 'stat' }, h('small', {}, 'Cursando'), h('b', {}, `${r.creditosCursando} cr.`)),
       h('button', { class: 'stat', onclick: () => formCreditos(carrera, creditosCarrera, recargar) }, h('small', {}, 'Total carrera'), h('b', {}, creditosCarrera ? `${creditosCarrera} cr.` : 'Definir'))),
-    h('div', { class: 'action-row' }, h('button', { class: 'btn primary', onclick: () => formMateriaCarrera(carrera, null, recargar) }, '+ Materia de otro semestre')),
+    h('div', { class: 'action-row' }, h('button', { class: 'btn primary', onclick: () => formMateriaCarrera(carrera, null, recargar) }, '+ Materia de otro semestre'),
+      items.some((m) => m.estado === 'cursando') ? h('button', { class: 'btn ghost', onclick: () => abrirSemestreNuevo(ctx.semestre, ctx.irA) }, 'Cerrar semestre') : null),
     items.length ? r.porSemestre.map((s) => h('section', { class: 'card' },
       h('div', { class: 'card-head' },
         h('h3', {}, s.semestre ? `Semestre ${s.semestre}` : 'Sin semestre asignado'),
